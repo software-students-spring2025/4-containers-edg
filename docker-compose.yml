@@ -1,0 +1,37 @@
+services:
+  mongodb:
+    image: mongodb/mongodb-community-server:latest
+    container_name: db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
+    restart: unless-stopped
+    networks:
+      - network
+
+  deepface:
+    build:
+      context: ./machine-learning-client/deepface
+      dockerfile: Dockerfile
+    container_name: deepface
+    ports:
+      - "5005:5000"
+    restart: unless-stopped
+    networks:
+      - network
+    volumes:
+      - deepface-weights:/root/.deepface/weights
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  deepface-weights:
