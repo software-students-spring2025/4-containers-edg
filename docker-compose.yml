@@ -11,20 +11,18 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
     restart: unless-stopped
     networks:
-      - network
+      - smartgates-network
 
   deepface:
     build:
-      context: ./machine-learning-client/deepface
+      context: ./machine-learning-client
       dockerfile: Dockerfile
     container_name: deepface
     ports:
       - "5005:5000"
     restart: unless-stopped
     networks:
-      - network
-    environment:
-      - PYTHONUNBUFFERED=1
+      - smartgates-network
 
   web-app:
     build:
@@ -35,14 +33,14 @@ services:
       - "3000:3000"
     restart: unless-stopped
     networks:
-      - network
+      - smartgates-network
     env_file:
       - ./web-app/.env
     depends_on:
       - deepface
 
 networks:
-  network:
+  smartgates-network:
     driver: bridge
 
 volumes:
