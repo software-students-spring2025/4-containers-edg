@@ -8,6 +8,7 @@ flask = "*"
 pymongo = "*"
 pylint = "*"
 black = "*"
+tomli = "*"
 
 [dev-packages]
 
