@@ -23,8 +23,6 @@ services:
     restart: unless-stopped
     networks:
       - network
-    volumes:
-      - deepface-weights:/root/.deepface/weights
     environment:
       - PYTHONUNBUFFERED=1
 
@@ -34,4 +32,3 @@ networks:
 
 volumes:
   mongodb-data:
-  deepface-weights:

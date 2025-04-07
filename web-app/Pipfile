@@ -9,6 +9,8 @@ black = "*"
 flask = "*"
 pymongo = "*"
 requests = "*"
+flask-cors = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
