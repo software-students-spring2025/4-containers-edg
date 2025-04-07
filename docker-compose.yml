@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     networks:
       - smartgates-network
+    depends_on:
+      - db
 
   web-app:
     build:
