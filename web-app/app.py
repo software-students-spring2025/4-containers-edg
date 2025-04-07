@@ -1,9 +1,10 @@
 """Web app for SmartGate: handles login, session, and attendance filtering."""
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from pymongo import MongoClient
 from datetime import datetime
+
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from pymongo import MongoClient
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
@@ -50,8 +51,7 @@ def admin_login():
         if password == ADMIN_PASSWORD:
             session["admin"] = True
             return redirect(url_for("admin_dashboard"))
-        else:
-            flash("Invalid admin password", "error")
+        flash("Invalid admin password", "error")
     return render_template("admin_login.html")
 
 
@@ -60,13 +60,13 @@ def admin_dashboard():
     """Admin dashboard showing all attendance records."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
+
     # Get all attendance records, sorted by timestamp (newest first)
     records = list(db.attendance.find().sort("timestamp", -1))
-    
+
     # Get all unique users
     users = db.users.find()
-    
+
     return render_template("admin.html", records=records, users=users)
 
 
@@ -75,27 +75,25 @@ def admin_add_user():
     """Admin page to add new users with facial recognition."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
+
     if request.method == "POST":
         user_id = request.form.get("user_id")
         name = request.form.get("name")
-        
+
         # Check if user already exists
         existing_user = db.users.find_one({"user_id": user_id})
         if existing_user:
             flash("User ID already exists", "error")
             return render_template("admin_add_user.html")
-        
+
         # Save user to database
-        db.users.insert_one({
-            "user_id": user_id,
-            "name": name,
-            "created_at": datetime.now()
-        })
-        
+        db.users.insert_one(
+            {"user_id": user_id, "name": name, "created_at": datetime.now()}
+        )
+
         # Redirect to facial enrollment page
         return redirect(url_for("admin_enroll_face", user_id=user_id))
-    
+
     return render_template("admin_add_user.html")
 
 
@@ -104,18 +102,18 @@ def admin_enroll_face(user_id):
     """Page to capture and enroll user's face."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
+
     user = db.users.find_one({"user_id": user_id})
     if not user:
         flash("User not found", "error")
         return redirect(url_for("admin_add_user"))
-    
+
     if request.method == "POST":
         # Handle face image submission to DeepFace service
         # This would typically involve calling the DeepFace API
         flash("Face enrolled successfully", "success")
         return redirect(url_for("admin_dashboard"))
-    
+
     return render_template("admin_enroll_face.html", user=user)
 
 
@@ -130,17 +128,21 @@ def process_signin():
     """Process facial recognition for signin."""
     # This would call the DeepFace service to identify the user
     # from the captured image and record attendance
-    
+
     # For demo purposes, let's assume we identified a user
-    recognized_user_id = "demo_user"  # In reality, this would come from the face recognition service
-    
+    recognized_user_id = (
+        "demo_user"  # In reality, this would come from the face recognition service
+    )
+
     # Record attendance
-    db.attendance.insert_one({
-        "user_id": recognized_user_id,
-        "timestamp": datetime.now(),
-        "status": "check-in"
-    })
-    
+    db.attendance.insert_one(
+        {
+            "user_id": recognized_user_id,
+            "timestamp": datetime.now(),
+            "status": "check-in",
+        }
+    )
+
     return redirect(url_for("signin_success", user_id=recognized_user_id))
 
 
