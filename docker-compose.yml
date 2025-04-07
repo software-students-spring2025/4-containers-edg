@@ -28,6 +28,21 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
 
+  web-app:
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile
+    container_name: web-app
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - network
+    env_file:
+      - .env
+    depends_on:
+      - db
+
 networks:
   network:
     driver: bridge
@@ -35,3 +50,9 @@ networks:
 volumes:
   mongodb-data:
   deepface-weights:
+
+
+
+
+
+
