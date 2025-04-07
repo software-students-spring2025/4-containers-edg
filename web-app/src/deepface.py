@@ -1,3 +1,11 @@
+"""
+DeepFace service module for facial recognition and verification.
+
+This module provides functionality for adding, verifying, and deleting faces
+using the DeepFace API. It interfaces with MongoDB for storing face data and
+provides methods for face verification against stored faces.
+"""
+
 import os
 import requests
 from pymongo import MongoClient
@@ -6,6 +14,14 @@ from dotenv import load_dotenv
 
 
 class DeepFaceService:
+    """
+    Service for facial recognition and verification using DeepFace API.
+
+    This class provides methods to add faces to a database, verify faces against
+    stored faces, and delete faces from the database. It uses MongoDB for storage
+    and the DeepFace API for facial recognition operations.
+    """
+
     def __init__(self):
         load_dotenv()
         self.deepface_api_url = os.getenv("DEEPFACE_API_URL")
@@ -13,7 +29,7 @@ class DeepFaceService:
         self.client = MongoClient(mongo_uri)
         self.db = self.client.smart_gates
         self.faces = self.db.faces
-        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", 10))
+        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
 
     def add_face(self, image_data, name):
         """
@@ -36,7 +52,7 @@ class DeepFaceService:
                 "message": "Face added successfully",
             }
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
 
     def verify_face(self, image_data):
@@ -75,6 +91,7 @@ class DeepFaceService:
                         "detector_backend": "mtcnn",
                         "distance_metric": "euclidean",
                     },
+                    timeout=30,  # Adding timeout parameter
                 )
 
                 if response.status_code == 200:
@@ -97,14 +114,14 @@ class DeepFaceService:
 
             if best_match and best_match["distance"] <= self.threshold:
                 return {"success": True, "verified": True, "match": best_match}
-            else:
-                return {
-                    "success": True,
-                    "verified": False,
-                    "message": "No matching face found",
-                }
 
-        except Exception as e:
+            return {
+                "success": True,
+                "verified": False,
+                "message": "No matching face found",
+            }
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
 
     def delete_face(self, face_id):
@@ -122,8 +139,8 @@ class DeepFaceService:
 
             if result.deleted_count > 0:
                 return {"success": True, "message": "Face deleted successfully"}
-            else:
-                return {"success": False, "message": "Face not found"}
 
-        except Exception as e:
+            return {"success": False, "message": "Face not found"}
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
