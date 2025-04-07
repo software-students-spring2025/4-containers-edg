@@ -34,14 +34,14 @@ services:
       dockerfile: Dockerfile
     container_name: web-app
     ports:
-      - "5000:5000"
+      - "3000:3000"
     restart: unless-stopped
     networks:
       - network
     env_file:
-      - .env
+      - ./web-app/.env
     depends_on:
-      - db
+      - deepface
 
 networks:
   network:
@@ -50,9 +50,3 @@ networks:
 volumes:
   mongodb-data:
   deepface-weights:
-
-
-
-
-
-
