@@ -13,20 +13,20 @@ services:
     networks:
       - network
 
-  #deepface:
-    #build:
-      #context: ./machine-learning-client/deepface
-      #dockerfile: Dockerfile
-    #container_name: deepface
-    #ports:
-      #- "5005:5000"
-    #restart: unless-stopped
-    #networks:
-      #- network
-    #volumes:
-      #- deepface-weights:/root/.deepface/weights
-    #environment:
-      #- PYTHONUNBUFFERED=1
+  deepface:
+    build:
+      context: ./machine-learning-client/deepface
+      dockerfile: Dockerfile
+    container_name: deepface
+    ports:
+      - "5005:5000"
+    restart: unless-stopped
+    networks:
+      - network
+    volumes:
+      - deepface-weights:/root/.deepface/weights
+    environment:
+      - PYTHONUNBUFFERED=1
 
   web-app:
     build:
@@ -40,8 +40,8 @@ services:
       - network
     env_file:
       - ./web-app/.env
-    #depends_on:
-      #- deepface
+    depends_on:
+      - deepface
 
 networks:
   network:
