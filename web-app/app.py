@@ -11,7 +11,7 @@ client = MongoClient(MONGO_URI)
 db = client["smartgate"]
 
 
-@app.route("/attendance")
+@app.route("/admin")
 def attendance():
     """Render attendance records from the MongoDB database"""
     records = list(db.attendance.find().sort("timestamp", -1))
