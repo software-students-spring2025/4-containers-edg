@@ -12,9 +12,6 @@ RUN pip install pipenv && \
 # Copy application code
 COPY . .
 
-# Create directory for templates if it doesn't exist
-RUN mkdir -p templates
-
 # Set environment variables
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
