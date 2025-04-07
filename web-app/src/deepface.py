@@ -47,6 +47,7 @@ class DeepFaceService:
             response = requests.post(
                 f"{self.deepface_api_url}/represent",
                 json={"model_name": "Facenet", "img": image_data},
+                timeout=30,
             )
 
             image_embedding = response.json()["results"][0]["embedding"]
@@ -86,6 +87,7 @@ class DeepFaceService:
             response = requests.post(
                 f"{self.deepface_api_url}/represent",
                 json={"model_name": "Facenet", "img": image_data},
+                timeout=30,
             )
 
             image_embedding1 = response.json()["results"][0]["embedding"]
