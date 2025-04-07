@@ -3,7 +3,7 @@ services:
     image: mongodb/mongodb-community-server:latest
     container_name: db
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongodb-data:/data/db
     environment:
