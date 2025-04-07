@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign-in Successful - SmartGate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+      padding: 1.5rem;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+    .success-icon {
+      background-color: #d1fae5;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .success-icon svg {
+      width: 40px;
+      height: 40px;
+      color: #059669;
+    }
+    h2 {
+      margin-top: 0;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    .welcome-message {
+      font-size: 1.25rem;
+      color: #4b5563;
+      margin-bottom: 2rem;
+    }
+    .info-box {
+      background-color: #f9fafb;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .info-item:last-child {
+      margin-bottom: 0;
+    }
+    .info-label {
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .info-value {
+      color: #1f2937;
+      font-weight: 600;
+    }
+    .redirect-message {
+      color: #6b7280;
+      margin-bottom: 1.5rem;
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+    }
+    .button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .primary-button {
+      background-color: #4f46e5;
+      color: white;
+    }
+    .primary-button:hover {
+      background-color: #4338ca;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+    
+    <h2>Sign-in Successful!</h2>
+    <p class="welcome-message">Welcome, {{ user.name }}</p>
+    
+    <div class="info-box">
+      <div class="info-item">
+        <span class="info-label">User ID:</span>
+        <span class="info-value">{{ user.user_id }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Date:</span>
+        <span class="info-value" id="current-date"></span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Time:</span>
+        <span class="info-value" id="current-time"></span>
+      </div>
+    </div>
+    
+    <p class="redirect-message">You will be redirected to the homepage in <span id="countdown">5</span> seconds...</p>
+    
+    <div class="button-group">
+      <a href="/" class="button primary-button">Go to Homepage</a>
+    </div>
+  </div>
+  
+  <script>
+    // Set current date and time
+    const now = new Date();
+    document.getElementById('current-date').textContent = now.toLocaleDateString();
+    document.getElementById('current-time').textContent = now.toLocaleTimeString();
+    
+    // Countdown and redirect
+    let seconds = 5;
+    const countdownElement = document.getElementById('countdown');
+    
+    const countdownInterval = setInterval(() => {
+      seconds--;
+      countdownElement.textContent = seconds;
+      
+      if (seconds <= 0) {
+        clearInterval(countdownInterval);
+        window.location.href = '/';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

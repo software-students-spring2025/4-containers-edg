@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Recognition Sign-in - SmartGate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+      padding: 1.5rem;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+    h2 {
+      margin-top: 0;
+      color: #1f2937;
+      margin-bottom: 1.5rem;
+    }
+    .camera-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      background-color: #e5e7eb;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #canvas {
+      display: none;
+    }
+    .camera-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #4b5563;
+      font-weight: 500;
+      text-align: center;
+    }
+    .face-outline {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px;
+      height: 300px;
+      border: 2px dashed rgba(79, 70, 229, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .signin-button {
+      background-color: #4f46e5;
+      color: white;
+      min-width: 150px;
+    }
+    .signin-button:hover {
+      background-color: #4338ca;
+    }
+    .manual-login {
+      display: block;
+      margin-top: 1.5rem;
+      color: #6b7280;
+      text-decoration: none;
+    }
+    .manual-login:hover {
+      text-decoration: underline;
+    }
+    .processing {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #4f46e5;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Face Recognition Sign-in</h2>
+    
+    <div class="camera-container" id="camera-container">
+      <video id="video" autoplay playsinline></video>
+      <div class="camera-message" id="camera-message">Initializing camera...</div>
+      <div class="face-outline"></div>
+      <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    
+    <div class="button-group">
+      <button id="signin-button" class="button signin-button">Sign In</button>
+    </div>
+    
+    <div id="processing" class="processing">
+      <div class="spinner"></div>
+      <p>Processing face recognition...</p>
+    </div>
+    
+    <a href="/login" class="manual-login">Manual Login with User ID</a>
+  </div>
+  
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const signinButton = document.getElementById('signin-button');
+    const cameraMessage = document.getElementById('camera-message');
+    const processing = document.getElementById('processing');
+    
+    let stream = null;
+    
+    // Initialize camera
+    async function initCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "user"
+          } 
+        });
+        video.srcObject = stream;
+        cameraMessage.style.display = 'none';
+      } catch (err) {
+        cameraMessage.innerText = 'Error accessing camera: ' + err.message;
+        console.error('Error accessing camera:', err);
+      }
+    }
+    
+    // Handle sign in
+    signinButton.addEventListener('click', function() {
+      // Capture image
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageDataUrl = canvas.toDataURL('image/jpeg');
+      
+      // Show processing spinner
+      processing.style.display = 'flex';
+      signinButton.disabled = true;
+      
+      // Send image to server
+      const formData = new FormData();
+      formData.append('image', imageDataUrl);
+      
+      fetch('/process_signin', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (response.redirected) {
+          window.location.href = response.url;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        processing.style.display = 'none';
+        signinButton.disabled = false;
+        alert('Error processing sign-in. Please try again.');
+      });
+    });
+    
+    // Initialize camera when page loads
+    window.addEventListener('load', initCamera);
+    
+    // Stop camera when leaving the page
+    window.addEventListener('beforeunload', function() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    });
+  </script>
+</body>
+</html>
