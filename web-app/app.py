@@ -17,7 +17,7 @@ def login():
         return redirect(url_for("attendance"))
     return render_template("login.html")
 
-@app.route("/attendance")
+@app.route("/admin")
 def attendance():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -32,4 +32,4 @@ def logout():
     return redirect(url_for("login"))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=3000)
