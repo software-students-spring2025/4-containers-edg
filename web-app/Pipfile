@@ -11,6 +11,7 @@ pymongo = "*"
 requests = "*"
 flask-cors = "*"
 python-dotenv = "*"
+numpy = "*"
 
 [dev-packages]
 

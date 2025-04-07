@@ -11,6 +11,7 @@ import requests
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
+import numpy as np
 
 
 class DeepFaceService:
@@ -43,7 +44,13 @@ class DeepFaceService:
             dict: Response from DeepFace API with face embeddings
         """
         try:
-            face_doc = {"name": name, "img": image_data}
+            response = requests.post(
+                f"{self.deepface_api_url}/represent",
+                json={"model_name": "Facenet", "img": image_data},
+            )
+
+            image_embedding = response.json()["results"][0]["embedding"]
+            face_doc = {"name": name, "img_vectors": image_embedding}
             face_id = self.faces.insert_one(face_doc).inserted_id
 
             return {
@@ -76,41 +83,36 @@ class DeepFaceService:
                     "message": "No matching faces found in database",
                 }
 
+            response = requests.post(
+                f"{self.deepface_api_url}/represent",
+                json={"model_name": "Facenet", "img": image_data},
+            )
+
+            image_embedding1 = response.json()["results"][0]["embedding"]
+
             # Verify against each stored face
             best_match = None
             lowest_distance = None
 
             for face in stored_faces:
                 print(f"comparing {face['_id']}")
-                response = requests.post(
-                    f"{self.deepface_api_url}/verify",
-                    json={
-                        "img1": image_data,
-                        "img2": face["img"],
-                        "model_name": "Facenet",
-                        "detector_backend": "mtcnn",
-                        "distance_metric": "euclidean",
-                    },
-                    timeout=30,  # Adding timeout parameter
+
+                image_embedding2 = face["img_vectors"]
+
+                distance = float(
+                    np.linalg.norm(
+                        np.array(image_embedding1) - np.array(image_embedding2)
+                    )
                 )
 
-                if response.status_code == 200:
-                    result = response.json()
-
-                    distance = result.get("distance")
-                    if lowest_distance is None or distance < lowest_distance:
-                        lowest_distance = distance
-                        best_match = {
-                            "_id": face.get("_id"),
-                            "name": face["name"],
-                            "distance": distance,
-                        }
-                        print(f"found best match:\n {best_match}")
-                else:
-                    return {
-                        "success": False,
-                        "message": f"Error verifying face: {response.text}",
+                if lowest_distance is None or distance < lowest_distance:
+                    lowest_distance = distance
+                    best_match = {
+                        "_id": face["_id"],
+                        "name": face["name"],
+                        "distance": distance,
                     }
+                    print(f"found best match:\n {best_match}")
 
             if best_match and best_match["distance"] <= self.threshold:
                 return {"success": True, "verified": True, "match": best_match}
