@@ -1,60 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Your Attendance</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f3f4f6;
-      padding: 2rem;
+      background: linear-gradient(to right, #eef2f3, #cfd9df);
+      margin: 0;
+      padding: 3rem;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
       background-color: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      padding: 2.5rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
     }
-    h2 {
-      margin-top: 0;
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    a.logout {
-      display: inline-block;
+    .welcome {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    .welcome i {
+      font-size: 1.5rem;
+      margin-right: 10px;
+      color: #6366f1;
+    }
+    .logout {
       background-color: #ef4444;
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
       text-decoration: none;
-      float: right;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
     }
-    a.logout:hover {
+    .logout:hover {
       background-color: #dc2626;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
+      margin-top: 2.5rem;
+      overflow: hidden;
+      border-radius: 12px;
     }
     th, td {
-      padding: 12px;
+      padding: 16px;
       text-align: center;
       border-bottom: 1px solid #e5e7eb;
+      font-size: 1rem;
     }
     th {
       background-color: #f9fafb;
+      font-weight: 600;
+      color: #374151;
     }
     tr:hover {
       background-color: #f3f4f6;
+    }
+    .status-present {
+      background-color: #dcfce7;
+      color: #16a34a;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .status-absent {
+      background-color: #fee2e2;
+      color: #dc2626;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="/logout" class="logout">Logout</a>
-    <h2>Welcome, {{ user_id }}</h2>
-    <h4>Your Attendance Records</h4>
+    <div class="header">
+      <div class="welcome"><i class="fas fa-user-circle"></i> Welcome, {{ user_id }}</div>
+      <a href="/logout" class="logout">Logout</a>
+    </div>
+
+    <h3 style="margin-top: 2rem; color: #4b5563;">📅 Your Attendance Records</h3>
 
     <table>
       <tr>
@@ -64,11 +102,18 @@
       {% for record in records %}
       <tr>
         <td>{{ record.timestamp }}</td>
-        <td>{{ record.status }}</td>
+        <td>
+          {% if record.status == 'present' %}
+            <span class="status-present">Present</span>
+          {% else %}
+            <span class="status-absent">Absent</span>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </table>
   </div>
 </body>
 </html>
+
 
