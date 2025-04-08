@@ -1,7 +1,6 @@
 """Web app for SmartGate: handles login, session, and attendance filtering."""
 
 import os
-from datetime import datetime
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from pymongo import MongoClient
@@ -19,29 +18,7 @@ db = client["smartgate"]
 @app.route("/")
 def index():
     """Home page - redirect to login if not logged in, otherwise show attendance."""
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    return redirect(url_for("attendance"))
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """Handles user login and saves user_id to session."""
-    if request.method == "POST":
-        user_id = request.form["user_id"]
-        session["user_id"] = user_id
-        return redirect(url_for("attendance"))
-    return render_template("login.html")
-
-
-@app.route("/attendance")
-def attendance():
-    """Shows attendance records for the logged-in user."""
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    user_id = session["user_id"]
-    records = list(db.attendance.find({"user_id": user_id}).sort("timestamp", -1))
-    return render_template("attendance.html", records=records, user_id=user_id)
+    return redirect(url_for("signin"))
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -95,28 +72,32 @@ def signin():
     return render_template("signin.html")
 
 
-@app.route("/process_signin", methods=["POST"])
-def process_signin():
-    """Process facial recognition for signin."""
-    # This would call the DeepFace service to identify the user
-    # from the captured image and record attendance
+# @app.route("/signin/process", methods=["POST"])
+# def process_signin():
+"""Process facial recognition for signin."""
+# This would call the DeepFace service to identify the user
+# from the captured image and record attendance
 
-    # TODO: make a reqeust: POST localhost:5005/faces
+# TODO: make a reqeust: POST localhost:5005/faces
 
-    # {
-    #     faceId: ref-> Faces
-    #     timestamp: <date>
-    # }
+# {
+#     faceId: ref-> Faces
+#     timestamp: <date>
+# }
 
-    return redirect(url_for("signin_success", user_id=recognized_user_id))
+# return redirect(url_for("signin_success", attendance_id=))
 
 
-@app.route("/signin/success/<attendanceId>")
-def signin_success(attendanceId):
-    """Show success message after signin."""
-    user = db.attendance.find_one({"_id": attendanceId})
-    return render_template("signin_success.html", user=user)
-
+# @app.route("/signin/success/<attendance_id>")
+# def signin_success(attendance_id):
+#     """Show success message after signin."""
+# attendance = db.attendance.find_one({"_id": attendance_id})
+#     return render_template("signin_success.html", user=user)
+#
+# @app.route("/attendance/<face_id>")
+# def attendance(face_id):
+#     records = list(db.attendance.find({"face_id": face_id}).sort("timestamp", -1))
+#     return render_template("attendance.html", records=records, user_id=user_id)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
