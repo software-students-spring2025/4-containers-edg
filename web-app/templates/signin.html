@@ -88,6 +88,13 @@
     .signin-button:hover {
       background-color: #4338ca;
     }
+    .admin-button {
+      background-color: #6b7280;
+      color: white;
+    }
+    .admin-button:hover {
+      background-color: #4b5563;
+    }
     .manual-login {
       display: block;
       margin-top: 1.5rem;
@@ -117,6 +124,14 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .error-message {
+      color: #ef4444;
+      margin-bottom: 15px;
+      display: none;
+      padding: 10px;
+      background-color: #fee2e2;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -130,16 +145,17 @@
       <canvas id="canvas" width="640" height="480"></canvas>
     </div>
     
+    <div id="error-message" class="error-message"></div>
+    
     <div class="button-group">
       <button id="signin-button" class="button signin-button">Sign In</button>
+      <a href="/admin/login" class="button admin-button">Admin</a>
     </div>
     
     <div id="processing" class="processing">
       <div class="spinner"></div>
       <p>Processing face recognition...</p>
     </div>
-    
-    <a href="/login" class="manual-login">Manual Login with User ID</a>
   </div>
   
   <script>
@@ -148,6 +164,7 @@
     const signinButton = document.getElementById('signin-button');
     const cameraMessage = document.getElementById('camera-message');
     const processing = document.getElementById('processing');
+    const errorMessage = document.getElementById('error-message');
     
     let stream = null;
     
@@ -171,6 +188,9 @@
     
     // Handle sign in
     signinButton.addEventListener('click', function() {
+      // Hide any previous error messages
+      errorMessage.style.display = 'none';
+      
       // Capture image
       const context = canvas.getContext('2d');
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -188,16 +208,28 @@
         method: 'POST',
         body: formData
       })
-      .then(response => {
-        if (response.redirected) {
-          window.location.href = response.url;
+      .then(response => response.json())
+      .then(result => {
+        processing.style.display = 'none';
+        signinButton.disabled = false;
+        
+        if (result.success) {
+          if (result.redirect) {
+            window.location.href = result.redirect;
+          }
+        } else {
+          // Show error message
+          errorMessage.textContent = result.message || 'Error processing sign-in';
+          errorMessage.style.display = 'block';
         }
       })
       .catch(error => {
         console.error('Error:', error);
         processing.style.display = 'none';
         signinButton.disabled = false;
-        alert('Error processing sign-in. Please try again.');
+        
+        errorMessage.textContent = 'Network error. Please try again.';
+        errorMessage.style.display = 'block';
       });
     });
     

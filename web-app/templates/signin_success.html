@@ -78,6 +78,7 @@
     .button-group {
       display: flex;
       justify-content: center;
+      gap: 1rem;
     }
     .button {
       padding: 12px 24px;
@@ -109,8 +110,8 @@
     
     <div class="info-box">
       <div class="info-item">
-        <span class="info-label">User ID:</span>
-        <span class="info-value">{{ user.user_id }}</span>
+        <span class="info-label">Name:</span>
+        <span class="info-value">{{ user.name }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Date:</span>
@@ -120,12 +121,19 @@
         <span class="info-label">Time:</span>
         <span class="info-value" id="current-time"></span>
       </div>
+      <div class="info-item">
+        <span class="info-label">Status:</span>
+        <span class="info-value">Check-in</span>
+      </div>
     </div>
     
     <p class="redirect-message">You will be redirected to the homepage in <span id="countdown">5</span> seconds...</p>
     
     <div class="button-group">
       <a href="/" class="button primary-button">Go to Homepage</a>
+      {% if user and user._id %}
+      <a href="/attendance/{{ user._id }}" class="button primary-button">View Attendance</a>
+      {% endif %}
     </div>
   </div>
   
