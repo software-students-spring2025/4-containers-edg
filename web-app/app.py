@@ -10,6 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:password@db:27017")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+DEEEPFACE_API_URL = os.environ.get("DEEPFACE_API_RUL", "http://localhost:5005")
 
 client = MongoClient(MONGO_URI)
 db = client["smartgate"]
@@ -70,51 +71,22 @@ def admin_dashboard():
     return render_template("admin.html", records=records, users=users)
 
 
-@app.route("/admin/add", methods=["GET", "POST"])
+@app.route("/admin/add")
 def admin_add_user():
     """Admin page to add new users with facial recognition."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
-    if request.method == "POST":
-        user_id = request.form.get("user_id")
-        name = request.form.get("name")
+    user_id = request.form.get("user_id")
+    name = request.form.get("name")
 
-        # Check if user already exists
-        existing_user = db.users.find_one({"user_id": user_id})
-        if existing_user:
-            flash("User ID already exists", "error")
-            return render_template("admin_add_user.html")
-
-        # Save user to database
-        db.users.insert_one(
-            {"user_id": user_id, "name": name, "created_at": datetime.now()}
-        )
-
-        # Redirect to facial enrollment page
-        return redirect(url_for("admin_enroll_face", user_id=user_id))
+    # Check if user already exists
+    existing_user = db.users.find_one({"user_id": user_id})
+    if existing_user:
+        flash("User ID already exists", "error")
+        return render_template("admin_add_user.html")
 
     return render_template("admin_add_user.html")
-
-
-@app.route("/admin/enroll/<user_id>", methods=["GET", "POST"])
-def admin_enroll_face(user_id):
-    """Page to capture and enroll user's face."""
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
-
-    user = db.users.find_one({"user_id": user_id})
-    if not user:
-        flash("User not found", "error")
-        return redirect(url_for("admin_add_user"))
-
-    if request.method == "POST":
-        # Handle face image submission to DeepFace service
-        # This would typically involve calling the DeepFace API
-        flash("Face enrolled successfully", "success")
-        return redirect(url_for("admin_dashboard"))
-
-    return render_template("admin_enroll_face.html", user=user)
 
 
 @app.route("/signin")
@@ -129,35 +101,21 @@ def process_signin():
     # This would call the DeepFace service to identify the user
     # from the captured image and record attendance
 
-    # For demo purposes, let's assume we identified a user
-    recognized_user_id = (
-        "demo_user"  # In reality, this would come from the face recognition service
-    )
+    # TODO: make a reqeust: POST localhost:5005/faces
 
-    # Record attendance
-    db.attendance.insert_one(
-        {
-            "user_id": recognized_user_id,
-            "timestamp": datetime.now(),
-            "status": "check-in",
-        }
-    )
+    # {
+    #     faceId: ref-> Faces
+    #     timestamp: <date>
+    # }
 
     return redirect(url_for("signin_success", user_id=recognized_user_id))
 
 
-@app.route("/signin/success/<user_id>")
-def signin_success(user_id):
+@app.route("/signin/success/<attendanceId>")
+def signin_success(attendanceId):
     """Show success message after signin."""
-    user = db.users.find_one({"user_id": user_id})
+    user = db.attendance.find_one({"_id": attendanceId})
     return render_template("signin_success.html", user=user)
-
-
-@app.route("/logout")
-def logout():
-    """Logs out the current user and clears session."""
-    session.clear()
-    return redirect(url_for("login"))
 
 
 if __name__ == "__main__":
