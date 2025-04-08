@@ -30,6 +30,7 @@ class DeepFaceService:
         self.client = MongoClient(mongo_uri)
         self.db = self.client.smart_gates
         self.faces = self.db.faces
+        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", 8))
 
     def add_face(self, image_data, name):
         """
@@ -58,7 +59,7 @@ class DeepFaceService:
         except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
 
-    def verify_face(self, image_data, threshold):
+    def verify_face(self, image_data):
         """
         Verify a face against stored faces
 
@@ -101,13 +102,13 @@ class DeepFaceService:
                 if lowest_distance is None or distance < lowest_distance:
                     lowest_distance = distance
                     best_match = {
-                        "_id": face["_id"],
+                        "_id": str(face["_id"]),
                         "name": face["name"],
                         "distance": distance,
                     }
                     print(f"found best match:\n {best_match}")
 
-            if best_match and best_match["distance"] <= threshold:
+            if best_match and best_match["distance"] <= self.threshold:
                 return {"success": True, "verified": True, "match": best_match}
 
             return {

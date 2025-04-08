@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     container_name: deepface
     ports:
-      - "5005:5000"
+      - "5005:5005"
     restart: unless-stopped
     networks:
       - smartgates-network
