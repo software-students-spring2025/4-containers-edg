@@ -3,7 +3,7 @@ services:
     image: mongodb/mongodb-community-server:latest
     container_name: db
     ports:
-      - "27018:27017"
+      - "27017:27017"
     volumes:
       - mongodb-data:/data/db
     environment:
@@ -19,10 +19,14 @@ services:
       dockerfile: Dockerfile
     container_name: deepface
     ports:
-      - "5005:5000"
+      - "5005:5005"
     restart: unless-stopped
     networks:
       - smartgates-network
+    env_file:
+      - ./machine-learning-client/.env
+    depends_on:
+      - mongodb
 
   web-app:
     build:

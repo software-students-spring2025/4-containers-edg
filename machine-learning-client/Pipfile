@@ -7,6 +7,9 @@ name = "pypi"
 pylint = "*"
 black = "*"
 deepface = "*"
+pymongo = "*"
+python-dotenv = "*"
+tf-keras = "*"
 
 [dev-packages]
 

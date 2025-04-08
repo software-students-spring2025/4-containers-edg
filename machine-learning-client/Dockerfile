@@ -12,13 +12,5 @@ RUN pip install pipenv && \
 # Copy application code
 COPY . .
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV PYTHONUNBUFFERED=1
-
-# Expose port
-EXPOSE 3000
-
 # Command to run the application
 CMD ["python", "app.py"]

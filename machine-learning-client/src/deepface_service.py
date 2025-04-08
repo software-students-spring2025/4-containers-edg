@@ -7,11 +7,12 @@ provides methods for face verification against stored faces.
 """
 
 import os
-import requests
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-from dotenv import load_dotenv
+
 import numpy as np
+from bson.objectid import ObjectId
+from deepface import DeepFace
+from dotenv import load_dotenv
+from pymongo import MongoClient
 
 
 class DeepFaceService:
@@ -25,12 +26,11 @@ class DeepFaceService:
 
     def __init__(self):
         load_dotenv()
-        self.deepface_api_url = os.getenv("DEEPFACE_API_URL")
         mongo_uri = os.getenv("MONGO_URI")
         self.client = MongoClient(mongo_uri)
         self.db = self.client.smart_gates
         self.faces = self.db.faces
-        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
+        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "8"))
 
     def add_face(self, image_data, name):
         """
@@ -44,14 +44,10 @@ class DeepFaceService:
             dict: Response from DeepFace API with face embeddings
         """
         try:
-            response = requests.post(
-                f"{self.deepface_api_url}/represent",
-                json={"model_name": "Facenet", "img": image_data},
-                timeout=30,
-            )
-
-            image_embedding = response.json()["results"][0]["embedding"]
-            face_doc = {"name": name, "img_vectors": image_embedding}
+            embeddings = DeepFace.represent(img_path=image_data, model_name="Facenet")[
+                0
+            ]["embedding"]
+            face_doc = {"name": name, "img_vectors": embeddings}
             face_id = self.faces.insert_one(face_doc).inserted_id
 
             return {
@@ -84,13 +80,9 @@ class DeepFaceService:
                     "message": "No matching faces found in database",
                 }
 
-            response = requests.post(
-                f"{self.deepface_api_url}/represent",
-                json={"model_name": "Facenet", "img": image_data},
-                timeout=30,
-            )
-
-            image_embedding1 = response.json()["results"][0]["embedding"]
+            image_embedding1 = DeepFace.represent(
+                img_path=image_data, model_name="Facenet"
+            )[0]["embedding"]
 
             # Verify against each stored face
             best_match = None
@@ -110,7 +102,7 @@ class DeepFaceService:
                 if lowest_distance is None or distance < lowest_distance:
                     lowest_distance = distance
                     best_match = {
-                        "_id": face["_id"],
+                        "_id": str(face["_id"]),
                         "name": face["name"],
                         "distance": distance,
                     }
