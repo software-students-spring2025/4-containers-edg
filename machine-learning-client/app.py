@@ -16,9 +16,12 @@ def add_face():
     json_data = request.get_json()
 
     if "img" not in json_data or "name" not in json_data:
-        return jsonify(
-            {"success": False, "message": "Missing required fields (img, name)"}
-        ), 400
+        return (
+            jsonify(
+                {"success": False, "message": "Missing required fields (img, name)"}
+            ),
+            400,
+        )
 
     img = json_data["img"]
     name = json_data["name"]
@@ -32,9 +35,10 @@ def verify_face():
     json_data = request.get_json()
 
     if "img" not in json_data:
-        return jsonify(
-            {"success": False, "message": "Missing required fields (img)"}
-        ), 400
+        return (
+            jsonify({"success": False, "message": "Missing required fields (img)"}),
+            400,
+        )
 
     img = json_data["img"]
     res = df.verify_face(img)
