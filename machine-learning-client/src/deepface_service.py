@@ -76,8 +76,9 @@ class DeepFaceService:
 
             if not stored_faces:
                 return {
-                    "success": False,
-                    "message": "No matching faces found in database",
+                    "success": True,
+                    "verified": False,
+                    "message": "No matching face found",
                 }
 
             image_embedding1 = DeepFace.represent(
