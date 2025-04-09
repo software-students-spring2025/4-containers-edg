@@ -23,36 +23,18 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:password@db:27017")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 
-client = MongoClient(MONGO_URI)
-db = client["smartgate"]
+from flask import g
 
+def get_db():
+    if "db" not in g:
+        client = MongoClient(MONGO_URI)
+        g.db = client["smartgate"]
+    return g.db
 
 @app.route("/")
 def index():
     """Home page - redirect to login if not logged in, otherwise show attendance."""
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    return redirect(url_for("attendance"))
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """Handles user login and saves user_id to session."""
-    if request.method == "POST":
-        user_id = request.form["user_id"]
-        session["user_id"] = user_id
-        return redirect(url_for("attendance"))
-    return render_template("login.html")
-
-
-@app.route("/attendance")
-def attendance():
-    """Shows attendance records for the logged-in user."""
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    user_id = session["user_id"]
-    records = list(db.attendance.find({"user_id": user_id}).sort("timestamp", -1))
-    return render_template("attendance.html", records=records, user_id=user_id)
+    return redirect(url_for("signin"))
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -83,7 +65,6 @@ def admin_dashboard():
 
 @app.route("/admin/add", methods=["GET", "POST"])
 def admin_add_user():
-    db = get_db()
     """Admin page to add new users with facial recognition."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -121,27 +102,7 @@ def admin_add_user():
     return render_template("admin_add_user.html")
 
 
-@app.route("/admin/enroll/<user_id>", methods=["GET", "POST"])
-def admin_enroll_face(user_id):
-    """Page to capture and enroll user's face."""
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
-
-    user = db.users.find_one({"user_id": user_id})
-    if not user:
-        flash("User not found", "error")
-        return redirect(url_for("admin_add_user"))
-
-    if request.method == "POST":
-        # Handle face image submission to DeepFace service
-        # This would typically involve calling the DeepFace API
-        flash("Face enrolled successfully", "success")
-        return redirect(url_for("admin_dashboard"))
-
-    return render_template("admin_enroll_face.html", user=user)
-
-
-@app.route("/signin")
+@app.route("/signin", methods=["GET"])
 def signin():
     """Facial recognition signin page."""
     return render_template("signin.html")
@@ -207,8 +168,9 @@ def process_signin():
         )
 
 
-@app.route("/signin/success/<user_id>")
-def signin_success(user_id):
+@app.route("/signin/success/<face_id>/<attendance_id>")
+def signin_success(face_id, attendance_id):
+    db = get_db()
     """Show success message after signin."""
     user = db.faces.find_one({"_id": ObjectId(face_id)})
 
@@ -219,6 +181,7 @@ def signin_success(user_id):
 
 @app.route("/attendance/<user_id>")
 def attendance(user_id):
+    db = get_db()
     """Show attendance records for a specific user."""
     user = db.faces.find_one({"_id": ObjectId(user_id)})
 
