@@ -1,7 +1,9 @@
-import pytest
+"""Tests for the DeepFaceService component."""
+# pylint: disable=redefined-outer-name
+# ^ This is disabled because pytest fixtures are intentionally redefined in test functions
 import sys
-import numpy as np
 from unittest.mock import patch, MagicMock
+import pytest
 
 # Mock the deepface module before it's imported
 mock_deepface = MagicMock()
@@ -11,6 +13,7 @@ sys.modules["deepface.DeepFace"] = MagicMock()
 
 # Mock bson.objectid
 class MockObjectId:
+    """Mock implementation of MongoDB's ObjectId for testing."""
     def __init__(self, id_str):
         self.id_str = id_str
 
@@ -26,11 +29,15 @@ class MockObjectId:
 # Create the ObjectId function directly in the test file
 ObjectId = MockObjectId
 
+# Import the service after mocking dependencies
+# pylint: disable=wrong-import-position
 from src.deepface_service import DeepFaceService
+# pylint: enable=wrong-import-position
 
 
 @pytest.fixture
 def mock_mongo_client():
+    """Create a mock MongoDB client for testing."""
     with patch("src.deepface_service.MongoClient") as mock_client:
         # Setup mock database and collection
         mock_db = MagicMock()
@@ -44,7 +51,9 @@ def mock_mongo_client():
 
 
 @pytest.fixture
-def deepface_service(mock_mongo_client):
+# pylint: disable=unused-argument
+def deepface_service(mock_mongo_client):  # Required for fixture dependency
+    """Create a DeepFaceService instance for testing."""
     with (
         patch("src.deepface_service.load_dotenv"),
         patch("src.deepface_service.os.getenv", return_value="10"),
@@ -55,6 +64,7 @@ def deepface_service(mock_mongo_client):
 
 @patch("src.deepface_service.DeepFace")
 def test_add_face_success(mock_deepface, deepface_service):
+    """Test successfully adding a face to the database."""
     # Mock DeepFace.represent
     mock_embedding = {"embedding": [0.1, 0.2, 0.3]}
     mock_deepface.represent.return_value = [mock_embedding]
@@ -83,6 +93,7 @@ def test_add_face_success(mock_deepface, deepface_service):
 
 @patch("src.deepface_service.DeepFace")
 def test_add_face_error(mock_deepface, deepface_service):
+    """Test handling errors when adding a face."""
     # Mock DeepFace.represent raising an exception
     mock_deepface.represent.side_effect = Exception("Test exception")
 
@@ -92,9 +103,10 @@ def test_add_face_error(mock_deepface, deepface_service):
     # Assertions
     assert result == {"success": False, "message": "Error: Test exception"}
 
-
 @patch("src.deepface_service.DeepFace")
-def test_verify_face_no_stored_faces(mock_deepface, deepface_service):
+# pylint: disable=unused-argument
+def test_verify_face_no_stored_faces(mock_deepface, deepface_service):  # mock_deepface not used
+    """Test verifying a face when no faces are stored in the database."""
     # Mock empty database
     deepface_service.faces.find.return_value = []
 
@@ -112,6 +124,7 @@ def test_verify_face_no_stored_faces(mock_deepface, deepface_service):
 @patch("src.deepface_service.DeepFace")
 @patch("src.deepface_service.np")
 def test_verify_face_with_match(mock_np, mock_deepface, deepface_service):
+    """Test verifying a face with a successful match."""
     # Mock DeepFace.represent
     mock_embedding = [0.1, 0.2, 0.3]
     mock_deepface.represent.return_value = [{"embedding": mock_embedding}]
@@ -136,7 +149,7 @@ def test_verify_face_with_match(mock_np, mock_deepface, deepface_service):
     deepface_service.faces.find.return_value = [mock_face1, mock_face2]
 
     # Mock numpy array to return different values for different calls
-    def mock_array_side_effect(arg):
+    def mock_array_side_effect(_):
         return MagicMock()
 
     mock_np.array.side_effect = mock_array_side_effect
@@ -165,6 +178,7 @@ def test_verify_face_with_match(mock_np, mock_deepface, deepface_service):
 @patch("src.deepface_service.DeepFace")
 @patch("src.deepface_service.np")
 def test_verify_face_no_match_above_threshold(mock_np, mock_deepface, deepface_service):
+    """Test verifying a face with no match due to distance above threshold."""
     # Mock DeepFace.represent
     mock_embedding = [0.1, 0.2, 0.3]
     mock_deepface.represent.return_value = [{"embedding": mock_embedding}]
@@ -202,6 +216,7 @@ def test_verify_face_no_match_above_threshold(mock_np, mock_deepface, deepface_s
 
 @patch("src.deepface_service.DeepFace")
 def test_verify_face_error(mock_deepface, deepface_service):
+    """Test handling errors when verifying a face."""
     # Ensure there are faces in the database first
     mock_face = {
         "_id": ObjectId("6239121d1d9d3d6e8bbc66c0"),
@@ -223,6 +238,7 @@ def test_verify_face_error(mock_deepface, deepface_service):
 
 
 def test_delete_face_success(deepface_service):
+    """Test successfully deleting a face from the database."""
     # Setup mock result with deleted_count
     mock_result = MagicMock()
     mock_result.deleted_count = 1
@@ -240,6 +256,7 @@ def test_delete_face_success(deepface_service):
 
 
 def test_delete_face_not_found(deepface_service):
+    """Test deleting a face that does not exist in the database."""
     # Mock MongoDB delete_one with no matching document
     mock_result = MagicMock()
     mock_result.deleted_count = 0
@@ -253,6 +270,7 @@ def test_delete_face_not_found(deepface_service):
 
 
 def test_delete_face_error(deepface_service):
+    """Test handling errors when deleting a face."""
     # Mock MongoDB delete_one raising an exception
     deepface_service.faces.delete_one.side_effect = Exception("Test exception")
 
@@ -261,4 +279,3 @@ def test_delete_face_error(deepface_service):
 
     # Assertions
     assert result == {"success": False, "message": "Error: Test exception"}
-

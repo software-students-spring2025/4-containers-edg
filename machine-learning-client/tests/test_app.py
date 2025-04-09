@@ -1,23 +1,31 @@
+"""Tests for the Flask application endpoints."""
+# pylint: disable=redefined-outer-name
+# ^ This is disabled because pytest fixtures are intentionally redefined in test functions
 import json
-import pytest
 import sys
 from unittest.mock import MagicMock, patch
+import pytest
 
 # Mock the deepface module before it's imported
 sys.modules["deepface"] = MagicMock()
 sys.modules["deepface.DeepFace"] = MagicMock()
 
+# Import app after mocking dependencies
+# pylint: disable=wrong-import-position
 from app import app
+# pylint: enable=wrong-import-position
 
 
 @pytest.fixture
 def client():
+    """Create a test client fixture for Flask app testing."""
     app.config["TESTING"] = True
-    with app.test_client() as client:
-        yield client
+    with app.test_client() as test_client:
+        yield test_client
 
 
 def test_index_route(client):
+    """Test the index route returns the expected welcome message."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.data == b"Welcome to the Machine Learning Client"
@@ -25,6 +33,7 @@ def test_index_route(client):
 
 @patch("app.df")
 def test_add_face_success(mock_df, client):
+    """Test successfully adding a face to the database."""
     # Mock the DeepFaceService response
     mock_df.add_face.return_value = {
         "success": True,
@@ -50,6 +59,7 @@ def test_add_face_success(mock_df, client):
 
 @patch("app.df")
 def test_add_face_missing_fields(mock_df, client):
+    """Test adding a face with missing required fields."""
     # Test with missing name
     test_data = {"img": "base64_encoded_image"}
     response = client.post(
@@ -80,6 +90,7 @@ def test_add_face_missing_fields(mock_df, client):
 
 @patch("app.df")
 def test_verify_face_success(mock_df, client):
+    """Test successfully verifying a face."""
     # Mock the DeepFaceService response
     mock_df.verify_face.return_value = {
         "success": True,
@@ -105,6 +116,7 @@ def test_verify_face_success(mock_df, client):
 
 @patch("app.df")
 def test_verify_face_missing_fields(mock_df, client):
+    """Test verifying a face with missing required fields."""
     # Test with missing img
     test_data = {}
     response = client.post(
@@ -123,6 +135,7 @@ def test_verify_face_missing_fields(mock_df, client):
 
 @patch("app.df")
 def test_delete_face_success(mock_df, client):
+    """Test successfully deleting a face from the database."""
     # Mock the DeepFaceService response
     mock_df.delete_face.return_value = {
         "success": True,
@@ -137,4 +150,3 @@ def test_delete_face_success(mock_df, client):
         "message": "Face deleted successfully",
     }
     mock_df.delete_face.assert_called_once_with("123456789")
-
