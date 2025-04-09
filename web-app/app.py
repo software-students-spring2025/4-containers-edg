@@ -1,10 +1,9 @@
 """Web app for SmartGate: handles login, session, and attendance filtering."""
 
 import os
-import json
-import base64
 import requests
 from datetime import datetime
+from bson.objectid import ObjectId
 
 from flask import (
     Flask,
@@ -25,7 +24,7 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 
 client = MongoClient(MONGO_URI)
-db = client["smartgate"]
+db = client["smart_gates"]
 
 
 @app.route("/")
@@ -112,12 +111,11 @@ def process_signin():
 
     # Get image data
     image_data = request.form.get("image")
-    image_data = image_data.split(",")[1] if "," in image_data else image_data
 
     # Call DeepFace API to verify the face
     try:
         response = requests.post(
-            f"{DEEPFACE_API_URL}/faces/verify", json={"img": image_data}, timeout=10
+            f"{DEEPFACE_API_URL}/faces/verify", json={"img": image_data}, timeout=30
         )
 
         if response.status_code == 200:
@@ -125,38 +123,26 @@ def process_signin():
 
             if result.get("success") and result.get("verified"):
                 match = result.get("match", {})
-                face_id = match.get("_id")
+                face_id = match["_id"]
 
-                # Find the user associated with this face
-                user = db.users.find_one({"face_id": face_id})
+                attendance_id = db.attendance.insert_one(
+                    {
+                        "face_id": face_id,
+                        "name": match["name"],
+                        "timestamp": datetime.now(),
+                    }
+                ).inserted_id
 
-                if user:
-                    # Record attendance
-                    attendance_id = db.attendance.insert_one(
-                        {
-                            "user_id": str(user["_id"]),
-                            "face_id": face_id,
-                            "name": user["name"],
-                            "timestamp": datetime.now(),
-                            "status": "check-in",
-                        }
-                    ).inserted_id
-
-                    return jsonify(
-                        {
-                            "success": True,
-                            "redirect": url_for(
-                                "signin_success", user_id=str(user["_id"])
-                            ),
-                        }
-                    )
-                else:
-                    return jsonify(
-                        {
-                            "success": False,
-                            "message": "Face recognized but no user found",
-                        }
-                    )
+                return jsonify(
+                    {
+                        "success": True,
+                        "redirect": url_for(
+                            "signin_success",
+                            face_id=str(face_id),
+                            attendance_id=str(attendance_id),
+                        ),
+                    }
+                )
             else:
                 return jsonify({"success": False, "message": "Face not recognized"})
         else:
@@ -176,15 +162,12 @@ def process_signin():
         )
 
 
-@app.route("/signin/success/<user_id>")
-def signin_success(user_id):
+@app.route("/signin/success/<face_id>/<attendance_id>")
+def signin_success(face_id, attendance_id):
     """Show success message after signin."""
-    user = db.users.find_one({"_id": user_id})
-    if not user:
-        return redirect(url_for("signin"))
+    user = db.faces.find_one({"_id": ObjectId(face_id)})
 
-    # Get most recent attendance record
-    attendance = db.attendance.find_one({"user_id": user_id}, sort=[("timestamp", -1)])
+    attendance = db.attendance.find_one({"_id": attendance_id})
 
     return render_template("signin_success.html", user=user, attendance=attendance)
 
@@ -192,11 +175,13 @@ def signin_success(user_id):
 @app.route("/attendance/<user_id>")
 def attendance(user_id):
     """Show attendance records for a specific user."""
-    user = db.users.find_one({"_id": user_id})
+    user = db.faces.find_one({"_id": ObjectId(user_id)})
+
     if not user:
         return redirect(url_for("signin"))
 
-    records = list(db.attendance.find({"user_id": user_id}).sort("timestamp", -1))
+    records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
+
     return render_template("attendance.html", records=records, user=user)
 
 

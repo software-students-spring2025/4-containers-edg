@@ -159,10 +159,7 @@
           {% for record in records %}
           <tr>
             <td>{{ record.face_id }}</td>
-            <td>
-              {% for face in faces %} {% if face._id == record.face %} {{
-              face.name }} {% endif %} {% endfor %}
-            </td>
+            <td>{{ record.name }}</td>
             <td>{{ record.timestamp }}</td>
           </tr>
           {% endfor %}
@@ -218,4 +215,3 @@
     </script>
   </body>
 </html>
-
