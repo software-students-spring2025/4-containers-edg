@@ -52,10 +52,8 @@ def admin_dashboard():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
-    # Get all attendance records, sorted by timestamp (newest first)
     records = list(db.attendance.find().sort("timestamp", -1))
 
-    # Get all unique users
     faces = list(db.faces.find())
 
     return render_template("admin.html", records=records, faces=faces)
@@ -76,41 +74,23 @@ def admin_add_user():
             flash("Name and face image are required", "error")
             return render_template("admin_add_user.html")
 
-        # Process the image data (remove data:image/jpeg;base64, prefix)
-        image_data = image_data.split(",")[1] if "," in image_data else image_data
-
         # Call the DeepFace API to add the face
         try:
             response = requests.post(
                 f"{DEEPFACE_API_URL}/faces",
                 json={"img": image_data, "name": name},
-                timeout=10,
+                timeout=30,
             )
 
-            if response.status_code == 201:
-                result = response.json()
-                if result.get("success"):
-                    # Create user in database with face_id
-                    user_id = db.users.insert_one(
-                        {
-                            "name": name,
-                            "face_id": result.get("face_id"),
-                            "created_at": datetime.now(),
-                        }
-                    ).inserted_id
-
-                    flash(
-                        f"User {name} added successfully with face recognition",
-                        "success",
-                    )
-                    return redirect(url_for("admin_dashboard"))
-                else:
-                    flash(f"Error adding face: {result.get('message')}", "error")
-            else:
+            result = response.json()
+            if result.get("success"):
                 flash(
-                    f"Error communicating with DeepFace API: {response.status_code}",
-                    "error",
+                    f"User {name} added successfully with face recognition",
+                    "success",
                 )
+                return redirect(url_for("admin_dashboard"))
+            else:
+                flash(f"Error adding face: {result.get('message')}", "error")
 
         except requests.RequestException as e:
             flash(f"Error connecting to DeepFace service: {str(e)}", "error")
