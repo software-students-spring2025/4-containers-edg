@@ -1,4 +1,5 @@
 """Tests for the Flask application endpoints."""
+
 # pylint: disable=redefined-outer-name
 # ^ This is disabled because pytest fixtures are intentionally redefined in test functions
 import json
@@ -13,6 +14,7 @@ sys.modules["deepface.DeepFace"] = MagicMock()
 # Import app after mocking dependencies
 # pylint: disable=wrong-import-position
 from app import app
+
 # pylint: enable=wrong-import-position
 
 

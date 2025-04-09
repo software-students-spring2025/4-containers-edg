@@ -1,4 +1,5 @@
 """Tests for the DeepFaceService component."""
+
 # pylint: disable=redefined-outer-name
 # ^ This is disabled because pytest fixtures are intentionally redefined in test functions
 import sys
@@ -14,6 +15,7 @@ sys.modules["deepface.DeepFace"] = MagicMock()
 # Mock bson.objectid
 class MockObjectId:
     """Mock implementation of MongoDB's ObjectId for testing."""
+
     def __init__(self, id_str):
         self.id_str = id_str
 
@@ -32,6 +34,7 @@ ObjectId = MockObjectId
 # Import the service after mocking dependencies
 # pylint: disable=wrong-import-position
 from src.deepface_service import DeepFaceService
+
 # pylint: enable=wrong-import-position
 
 
@@ -103,9 +106,12 @@ def test_add_face_error(mock_deepface, deepface_service):
     # Assertions
     assert result == {"success": False, "message": "Error: Test exception"}
 
+
 @patch("src.deepface_service.DeepFace")
 # pylint: disable=unused-argument
-def test_verify_face_no_stored_faces(mock_deepface, deepface_service):  # mock_deepface not used
+def test_verify_face_no_stored_faces(
+    mock_deepface, deepface_service
+):  # mock_deepface not used
     """Test verifying a face when no faces are stored in the database."""
     # Mock empty database
     deepface_service.faces.find.return_value = []

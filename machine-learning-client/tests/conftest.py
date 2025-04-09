@@ -1,4 +1,5 @@
 """Test configuration and fixtures for the machine learning client."""
+
 import os
 import sys
 from unittest.mock import patch, MagicMock
