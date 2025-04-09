@@ -1,102 +1,389 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Add New User - SmartGate</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f3f4f6;
-      padding: 1.5rem;
-      margin: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background-color: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    h2 {
-      margin: 0;
-      color: #1f2937;
-    }
-    .back-link {
-      color: #4b5563;
-      text-decoration: none;
-    }
-    .back-link:hover {
-      text-decoration: underline;
-    }
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #374151;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #10b981;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #059669;
-    }
-    .error-message {
-      color: #ef4444;
-      margin-bottom: 15px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>Add New User</h2>
-      <a href="/admin" class="back-link">← Back to Dashboard</a>
-    </div>
-    
-    {% if get_flashed_messages(category_filter=["error"]) %}
+  <head>
+    <title>Add New User - SmartGate</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+        padding: 1.5rem;
+        margin: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      h2 {
+        margin: 0;
+        color: #1f2937;
+      }
+      .back-link {
+        color: #4b5563;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #374151;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .primary-button {
+        background-color: #10b981;
+        color: white;
+      }
+      .primary-button:hover {
+        background-color: #059669;
+      }
+      .secondary-button {
+        background-color: #4f46e5;
+        color: white;
+      }
+      .secondary-button:hover {
+        background-color: #4338ca;
+      }
+      .error-message {
+        color: #ef4444;
+        margin-bottom: 15px;
+      }
+      .success-message {
+        color: #10b981;
+        margin-bottom: 15px;
+      }
+      .steps {
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: center;
+      }
+      .step {
+        padding: 8px 16px;
+        background-color: #f9fafb;
+        color: #6b7280;
+        font-weight: 500;
+        border-radius: 9999px;
+        margin: 0 8px;
+      }
+      .step.active {
+        background-color: #4f46e5;
+        color: white;
+      }
+      #step-1-content,
+      #step-2-content {
+        margin-bottom: 2rem;
+      }
+      #step-2-content {
+        display: none;
+      }
+      .camera-container {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        background-color: #e5e7eb;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #canvas {
+        display: none;
+      }
+      .camera-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #4b5563;
+        font-weight: 500;
+        text-align: center;
+      }
+      .face-outline {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 220px;
+        height: 300px;
+        border: 2px dashed rgba(79, 70, 229, 0.6);
+        border-radius: 50%;
+        box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+      }
+      .button-container {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+      .image-preview {
+        width: 100%;
+        height: 300px;
+        background-color: #f3f4f6;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: none;
+        overflow: hidden;
+      }
+      .image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Add New User</h2>
+        <a href="/admin" class="back-link">← Back to Dashboard</a>
+      </div>
+
+      {% if get_flashed_messages(category_filter=["error"]) %}
       <div class="error-message">
-        {% for message in get_flashed_messages(category_filter=["error"]) %}
-          {{ message }}
-        {% endfor %}
+        {% for message in get_flashed_messages(category_filter=["error"]) %} {{
+        message }} {% endfor %}
       </div>
-    {% endif %}
-    
-    <form method="post">
-      <div class="form-group">
-        <label for="user_id">User ID:</label>
-        <input type="text" id="user_id" name="user_id" required>
+      {% endif %} {% if get_flashed_messages(category_filter=["success"]) %}
+      <div class="success-message">
+        {% for message in get_flashed_messages(category_filter=["success"]) %}
+        {{ message }} {% endfor %}
       </div>
-      
-      <div class="form-group">
-        <label for="name">Full Name:</label>
-        <input type="text" id="name" name="name" required>
+      {% endif %}
+
+      <div class="steps">
+        <div class="step active" id="step-1">1. User Info</div>
+        <div class="step" id="step-2">2. Face Recognition</div>
       </div>
-      
-      <button type="submit">Continue to Face Enrollment</button>
-    </form>
-  </div>
-</body>
+
+      <form method="post" action="/admin/add" id="add-user-form">
+        <div id="step-1-content">
+          <div class="form-group">
+            <label for="name">Full Name:</label>
+            <input type="text" id="name" name="name" required />
+          </div>
+
+          <div class="button-container">
+            <button type="button" id="next-button" class="secondary-button">
+              Next: Face Registration
+            </button>
+          </div>
+        </div>
+
+        <div id="step-2-content">
+          <div class="camera-container" id="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <div class="camera-message" id="camera-message">
+              Initializing camera...
+            </div>
+            <div class="face-outline"></div>
+            <canvas id="canvas" width="640" height="480"></canvas>
+          </div>
+
+          <div class="image-preview" id="image-preview">
+            <img id="captured-image" />
+          </div>
+
+          <input type="hidden" name="image_data" id="image-data" />
+
+          <div class="button-container">
+            <button type="button" id="back-button" class="secondary-button">
+              Back
+            </button>
+            <button type="button" id="capture-button" class="secondary-button">
+              Capture Image
+            </button>
+            <button
+              type="submit"
+              id="submit-button"
+              class="primary-button"
+              disabled
+            >
+              Add User
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // DOM elements
+      const step1 = document.getElementById("step-1");
+      const step2 = document.getElementById("step-2");
+      const step1Content = document.getElementById("step-1-content");
+      const step2Content = document.getElementById("step-2-content");
+      const nextButton = document.getElementById("next-button");
+      const backButton = document.getElementById("back-button");
+      const captureButton = document.getElementById("capture-button");
+      const submitButton = document.getElementById("submit-button");
+      const nameInput = document.getElementById("name");
+      const imageData = document.getElementById("image-data");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const cameraMessage = document.getElementById("camera-message");
+      const cameraContainer = document.getElementById("camera-container");
+      const imagePreview = document.getElementById("image-preview");
+      const capturedImage = document.getElementById("captured-image");
+
+      let stream = null;
+
+      // Initialize camera
+      async function initCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "user",
+            },
+          });
+          video.srcObject = stream;
+          cameraMessage.style.display = "none";
+
+          // Set canvas dimensions to match video once metadata is loaded
+          video.addEventListener("loadedmetadata", function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          });
+        } catch (err) {
+          cameraMessage.innerText = "Error accessing camera: " + err.message;
+          console.error("Error accessing camera:", err);
+        }
+      }
+
+      // Stop camera
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          stream = null;
+        }
+      }
+
+      // Next step button
+      nextButton.addEventListener("click", function () {
+        if (!nameInput.value.trim()) {
+          alert("Please enter a name");
+          nameInput.focus();
+          return;
+        }
+
+        step1.classList.remove("active");
+        step2.classList.add("active");
+        step1Content.style.display = "none";
+        step2Content.style.display = "block";
+
+        // Initialize camera
+        initCamera();
+      });
+
+      // Back button
+      backButton.addEventListener("click", function () {
+        step2.classList.remove("active");
+        step1.classList.add("active");
+        step2Content.style.display = "none";
+        step1Content.style.display = "block";
+
+        // Stop camera
+        stopCamera();
+      });
+
+      // Capture image button
+      captureButton.addEventListener("click", function () {
+        const context = canvas.getContext("2d");
+
+        // Draw maintaining aspect ratio
+        const videoAspectRatio = video.videoWidth / video.videoHeight;
+        const canvasAspectRatio = canvas.width / canvas.height;
+
+        let drawWidth,
+          drawHeight,
+          offsetX = 0,
+          offsetY = 0;
+
+        if (videoAspectRatio > canvasAspectRatio) {
+          // Video is wider than canvas
+          drawHeight = canvas.height;
+          drawWidth = video.videoWidth * (canvas.height / video.videoHeight);
+          offsetX = (canvas.width - drawWidth) / 2;
+        } else {
+          // Video is taller than canvas
+          drawWidth = canvas.width;
+          drawHeight = video.videoHeight * (canvas.width / video.videoWidth);
+          offsetY = (canvas.height - drawHeight) / 2;
+        }
+
+        // Clear canvas first
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw video frame to canvas with proper dimensions
+        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+
+        // Get image data as base64 string
+        const imageDataUrl = canvas.toDataURL("image/jpeg");
+
+        // Update hidden input with image data
+        imageData.value = imageDataUrl;
+
+        // Show preview
+        capturedImage.src = imageDataUrl;
+        cameraContainer.style.display = "none";
+        imagePreview.style.display = "block";
+
+        // Enable submit button
+        submitButton.disabled = false;
+
+        // Change capture button to "Retake"
+        captureButton.innerText = "Retake";
+        captureButton.addEventListener(
+          "click",
+          function () {
+            cameraContainer.style.display = "block";
+            imagePreview.style.display = "none";
+            submitButton.disabled = true;
+            captureButton.innerText = "Capture Image";
+          },
+          { once: true },
+        );
+      });
+
+      // Stop camera when leaving the page
+      window.addEventListener("beforeunload", function () {
+        stopCamera();
+      });
+    </script>
+  </body>
 </html>
