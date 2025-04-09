@@ -28,9 +28,9 @@ class DeepFaceService:
         load_dotenv()
         mongo_uri = os.getenv("MONGO_URI")
         self.client = MongoClient(mongo_uri)
-        self.db = self.client.smart_gates
+        self.db = self.client.smart_gate
         self.faces = self.db.faces
-        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "8"))
+        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
 
     def add_face(self, image_data, name):
         """
@@ -76,8 +76,9 @@ class DeepFaceService:
 
             if not stored_faces:
                 return {
-                    "success": False,
-                    "message": "No matching faces found in database",
+                    "success": True,
+                    "verified": False,
+                    "message": "No matching face found",
                 }
 
             image_embedding1 = DeepFace.represent(

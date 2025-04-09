@@ -3,21 +3,28 @@
 import os
 from datetime import datetime
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+import requests
+from bson.objectid import ObjectId
+from flask import (
+    Flask,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from pymongo import MongoClient
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:password@db:27017")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 
-from flask import g
-
-def get_db():
-    if "db" not in g:
-        client = MongoClient(MONGO_URI)
-        g.db = client["smartgate"]
-    return g.db
+client = MongoClient(MONGO_URI)
+db = client["smartgate"]
 
 
 @app.route("/")
@@ -40,7 +47,6 @@ def login():
 
 @app.route("/attendance")
 def attendance():
-    db = get_db()
     """Shows attendance records for the logged-in user."""
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -68,13 +74,11 @@ def admin_dashboard():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
-    # Get all attendance records, sorted by timestamp (newest first)
     records = list(db.attendance.find().sort("timestamp", -1))
 
-    # Get all unique users
-    users = db.users.find()
+    faces = list(db.faces.find())
 
-    return render_template("admin.html", records=records, users=users)
+    return render_template("admin.html", records=records, faces=faces)
 
 
 @app.route("/admin/add", methods=["GET", "POST"])
@@ -85,29 +89,40 @@ def admin_add_user():
         return redirect(url_for("admin_login"))
 
     if request.method == "POST":
-        user_id = request.form.get("user_id")
+        # Process form submission
         name = request.form.get("name")
+        image_data = request.form.get("image_data")
 
-        # Check if user already exists
-        existing_user = db.users.find_one({"user_id": user_id})
-        if existing_user:
-            flash("User ID already exists", "error")
+        if not name or not image_data:
+            flash("Name and face image are required", "error")
             return render_template("admin_add_user.html")
 
-        # Save user to database
-        db.users.insert_one(
-            {"user_id": user_id, "name": name, "created_at": datetime.now()}
-        )
+        # Call the DeepFace API to add the face
+        try:
+            response = requests.post(
+                f"{DEEPFACE_API_URL}/faces",
+                json={"img": image_data, "name": name},
+                timeout=30,
+            )
 
-        # Redirect to facial enrollment page
-        return redirect(url_for("admin_enroll_face", user_id=user_id))
+            result = response.json()
+            if result.get("success"):
+                flash(
+                    f"User {name} added successfully with face recognition",
+                    "success",
+                )
+                return redirect(url_for("admin_dashboard"))
+
+            flash(f"Error adding face: {result.get('message')}", "error")
+
+        except requests.RequestException as e:
+            flash(f"Error connecting to DeepFace service: {str(e)}", "error")
 
     return render_template("admin_add_user.html")
 
 
 @app.route("/admin/enroll/<user_id>", methods=["GET", "POST"])
 def admin_enroll_face(user_id):
-    db = get_db()
     """Page to capture and enroll user's face."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -136,39 +151,90 @@ def signin():
 def process_signin():
     db = get_db()
     """Process facial recognition for signin."""
-    # This would call the DeepFace service to identify the user
-    # from the captured image and record attendance
+    if "image" not in request.form:
+        return jsonify({"success": False, "message": "No image provided"}), 400
 
-    # For demo purposes, let's assume we identified a user
-    recognized_user_id = (
-        "demo_user"  # In reality, this would come from the face recognition service
-    )
+    # Get image data
+    image_data = request.form.get("image")
 
-    # Record attendance
-    db.attendance.insert_one(
-        {
-            "user_id": recognized_user_id,
-            "timestamp": datetime.now(),
-            "status": "check-in",
-        }
-    )
+    # Call DeepFace API to verify the face
+    try:
+        response = requests.post(
+            f"{DEEPFACE_API_URL}/faces/verify", json={"img": image_data}, timeout=30
+        )
 
-    return redirect(url_for("signin_success", user_id=recognized_user_id))
+        if response.status_code == 200:
+            result = response.json()
+
+            if result.get("success") and result.get("verified"):
+                match = result.get("match", {})
+                face_id = match["_id"]
+
+                attendance_id = db.attendance.insert_one(
+                    {
+                        "face_id": face_id,
+                        "name": match["name"],
+                        "timestamp": datetime.now(),
+                    }
+                ).inserted_id
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "redirect": url_for(
+                            "signin_success",
+                            face_id=str(face_id),
+                            attendance_id=str(attendance_id),
+                        ),
+                    }
+                )
+
+            return jsonify({"success": False, "message": "Face not recognized"})
+
+        return jsonify(
+            {
+                "success": False,
+                "message": f"Error communicating with DeepFace API: {response.status_code}",
+            }
+        )
+
+    except requests.RequestException as e:
+        return jsonify(
+            {
+                "success": False,
+                "message": f"Error connecting to DeepFace service: {str(e)}",
+            }
+        )
 
 
 @app.route("/signin/success/<user_id>")
 def signin_success(user_id):
-    db = get_db()
     """Show success message after signin."""
-    user = db.users.find_one({"user_id": user_id})
-    return render_template("signin_success.html", user=user)
+    user = db.faces.find_one({"_id": ObjectId(face_id)})
+
+    records = db.attendance.find_one({"_id": attendance_id})
+
+    return render_template("signin_success.html", user=user, attendance=records)
+
+
+@app.route("/attendance/<user_id>")
+def attendance(user_id):
+    """Show attendance records for a specific user."""
+    user = db.faces.find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        return redirect(url_for("signin"))
+
+    records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
+
+    return render_template("attendance.html", records=records, user=user)
 
 
 @app.route("/logout")
 def logout():
-    """Logs out the current user and clears session."""
+    """Logs out the current user or admin and clears session."""
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
