@@ -11,8 +11,13 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:password@db:27017")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-client = MongoClient(MONGO_URI)
-db = client["smartgate"]
+from flask import g
+
+def get_db():
+    if "db" not in g:
+        client = MongoClient(MONGO_URI)
+        g.db = client["smartgate"]
+    return g.db
 
 
 @app.route("/")
@@ -35,6 +40,7 @@ def login():
 
 @app.route("/attendance")
 def attendance():
+    db = get_db()
     """Shows attendance records for the logged-in user."""
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -57,6 +63,7 @@ def admin_login():
 
 @app.route("/admin")
 def admin_dashboard():
+    db = get_db()
     """Admin dashboard showing all attendance records."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -72,6 +79,7 @@ def admin_dashboard():
 
 @app.route("/admin/add", methods=["GET", "POST"])
 def admin_add_user():
+    db = get_db()
     """Admin page to add new users with facial recognition."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -99,6 +107,7 @@ def admin_add_user():
 
 @app.route("/admin/enroll/<user_id>", methods=["GET", "POST"])
 def admin_enroll_face(user_id):
+    db = get_db()
     """Page to capture and enroll user's face."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -125,6 +134,7 @@ def signin():
 
 @app.route("/process_signin", methods=["POST"])
 def process_signin():
+    db = get_db()
     """Process facial recognition for signin."""
     # This would call the DeepFace service to identify the user
     # from the captured image and record attendance
@@ -148,6 +158,7 @@ def process_signin():
 
 @app.route("/signin/success/<user_id>")
 def signin_success(user_id):
+    db = get_db()
     """Show success message after signin."""
     user = db.users.find_one({"user_id": user_id})
     return render_template("signin_success.html", user=user)
