@@ -105,109 +105,134 @@ def test_verify_face_no_stored_faces(mock_deepface, deepface_service):
     }
 
 
-def test_verify_face_with_match(deepface_service):
-    # Setup a simplified test that doesn't rely on numpy math operations
-    
-    # Create a mock embedding
+@patch('src.deepface_service.DeepFace')
+@patch('src.deepface_service.np')
+def test_verify_face_with_match(mock_np, mock_deepface, deepface_service):
+    # Mock DeepFace.represent
     mock_embedding = [0.1, 0.2, 0.3]
+    mock_deepface.represent.return_value = [{"embedding": mock_embedding}]
     
-    # Mock the DeepFace.represent method directly
-    with patch('src.deepface_service.DeepFace') as mock_deepface:
-        mock_deepface.represent.return_value = [{"embedding": mock_embedding}]
-        
-        # Create a mock face with the same ObjectId structure as our class
-        mock_face_id = ObjectId("6239121d1d9d3d6e8bbc66c0")
-        mock_face = {
-            "_id": mock_face_id,
-            "name": "Test Person",
-            "img_vectors": mock_embedding  # Use same embedding to simplify
-        }
-        
-        # Patch numpy to avoid math operations
-        with patch('src.deepface_service.np') as mock_np:
-            # Set up numpy to avoid actual math
-            mock_np.array.side_effect = lambda x: x
-            mock_np.linalg.norm.return_value = 5.0  # Below threshold
-            
-            # Mock the database query
-            deepface_service.faces.find.return_value = [mock_face]
-            
-            # Construct the expected result manually
-            expected_result = {
-                "success": True,
-                "verified": True,
-                "match": {
-                    "_id": str(mock_face_id),  # String representation
-                    "name": "Test Person",
-                    "distance": 5.0
-                }
-            }
-            
-            # Mock the actual function implementation to return our expected result
-            deepface_service.verify_face = MagicMock(return_value=expected_result)
-            
-            # Call the method
-            result = deepface_service.verify_face("base64_image_data")
-            
-            # Assert the result matches what we expected
-            assert result == expected_result
-
-
-def test_verify_face_no_match(deepface_service):
-    # Similar approach to previous test, but with a different expected result
+    # Create two mock faces to test finding the best match
+    mock_face_id1 = ObjectId("6239121d1d9d3d6e8bbc66c0")
+    mock_face_id2 = ObjectId("6239121d1d9d3d6e8bbc66c1")
     
-    # Setup expected result for no match case
-    expected_result = {
-        "success": True,
-        "verified": False,
-        "message": "No matching face found"
+    mock_face1 = {
+        "_id": mock_face_id1,
+        "name": "Test Person 1",
+        "img_vectors": [0.15, 0.25, 0.35]
     }
     
-    # Mock the actual function implementation
-    deepface_service.verify_face = MagicMock(return_value=expected_result)
+    mock_face2 = {
+        "_id": mock_face_id2,
+        "name": "Test Person 2",
+        "img_vectors": [0.12, 0.22, 0.32]
+    }
+    
+    # Mock database query with two faces
+    deepface_service.faces.find.return_value = [mock_face1, mock_face2]
+    
+    # Mock numpy array to return different values for different calls
+    def mock_array_side_effect(arg):
+        return MagicMock()
+    
+    mock_np.array.side_effect = mock_array_side_effect
+    
+    # Mock linalg.norm to return different distances in sequence (first higher, second lower)
+    # This tests that we find the lowest distance face
+    distances = [8.0, 5.0]  # 5.0 should be chosen as best match
+    mock_np.linalg.norm.side_effect = distances
     
     # Call the method
     result = deepface_service.verify_face("base64_image_data")
     
-    # Assert the result matches what we expected
-    assert result == expected_result
+    # Assertions
+    assert mock_deepface.represent.call_count == 1
+    assert mock_np.array.call_count >= 4  # 2 per face
+    assert mock_np.linalg.norm.call_count == 2  # Once for each face
+    
+    # Check that we got a match result with the second (lower distance) face
+    assert result["success"] is True
+    assert result["verified"] is True
+    assert result["match"]["_id"] == str(mock_face_id2)
+    assert result["match"]["name"] == "Test Person 2"
+    assert result["match"]["distance"] == 5.0
 
 
-def test_verify_face_error(deepface_service):
-    # Setup expected result for error case
-    expected_result = {
-        "success": False,
-        "message": "Error: Test exception"
+@patch('src.deepface_service.DeepFace')
+@patch('src.deepface_service.np')
+def test_verify_face_no_match_above_threshold(mock_np, mock_deepface, deepface_service):
+    # Mock DeepFace.represent
+    mock_embedding = [0.1, 0.2, 0.3]
+    mock_deepface.represent.return_value = [{"embedding": mock_embedding}]
+    
+    # Create mock stored face
+    mock_face_id = ObjectId("6239121d1d9d3d6e8bbc66c0")
+    mock_face = {
+        "_id": mock_face_id,
+        "name": "Test Person",
+        "img_vectors": [0.9, 0.8, 0.7]  # Different values to make distance larger
     }
     
-    # Mock the actual function implementation
-    deepface_service.verify_face = MagicMock(return_value=expected_result)
+    # Mock database query
+    deepface_service.faces.find.return_value = [mock_face]
+    
+    # Mock numpy operations
+    mock_array = MagicMock()
+    mock_np.array.side_effect = lambda x: mock_array
+    mock_np.linalg.norm.return_value = 15.0  # Above threshold of 10
     
     # Call the method
     result = deepface_service.verify_face("base64_image_data")
     
-    # Assert the result matches what we expected
-    assert result == expected_result
+    # Assertions
+    assert mock_deepface.represent.call_count == 1
+    assert mock_np.array.call_count >= 2
+    assert mock_np.linalg.norm.call_count == 1
+    
+    # Check the no match result
+    assert result["success"] is True
+    assert result["verified"] is False
+    assert "message" in result
+    assert result["message"] == "No matching face found"
+
+
+@patch('src.deepface_service.DeepFace')
+def test_verify_face_error(mock_deepface, deepface_service):
+    # Ensure there are faces in the database first
+    mock_face = {
+        "_id": ObjectId("6239121d1d9d3d6e8bbc66c0"),
+        "name": "Test Person",
+        "img_vectors": [0.1, 0.2, 0.3]
+    }
+    
+    deepface_service.faces.find.return_value = [mock_face]
+    
+    # Now mock DeepFace.represent to raise an exception
+    mock_deepface.represent.side_effect = Exception("Test exception")
+    
+    # Call the method with the exception in place
+    result = deepface_service.verify_face("base64_image_data")
+    
+    # Assertions - our code should catch the exception and return an error response
+    assert result["success"] is False
+    assert "Error:" in result["message"]
 
 
 def test_delete_face_success(deepface_service):
-    # Setup expected result
-    expected_result = {
-        "success": True,
-        "message": "Face deleted successfully"
-    }
-    
-    # Mock the actual function implementation
-    deepface_service.delete_face = MagicMock(return_value=expected_result)
+    # Setup mock result with deleted_count
+    mock_result = MagicMock()
+    mock_result.deleted_count = 1
+    deepface_service.faces.delete_one.return_value = mock_result
     
     # Call the method
     result = deepface_service.delete_face("6239121d1d9d3d6e8bbc66c0")
     
-    # Verify the response
-    assert result == expected_result
+    # Verify MongoDB was called with correct parameters
+    deepface_service.faces.delete_one.assert_called_once()
     
-    # Verify the mock was called with correct face_id
-    deepface_service.delete_face.assert_called_once_with("6239121d1d9d3d6e8bbc66c0")
+    # Assertions on the result
+    assert result["success"] is True
+    assert result["message"] == "Face deleted successfully"
 
 
 def test_delete_face_not_found(deepface_service):
