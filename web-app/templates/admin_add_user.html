@@ -273,6 +273,12 @@
           });
           video.srcObject = stream;
           cameraMessage.style.display = "none";
+
+          // Set canvas dimensions to match video once metadata is loaded
+          video.addEventListener("loadedmetadata", function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          });
         } catch (err) {
           cameraMessage.innerText = "Error accessing camera: " + err.message;
           console.error("Error accessing camera:", err);
@@ -319,8 +325,32 @@
       captureButton.addEventListener("click", function () {
         const context = canvas.getContext("2d");
 
-        // Draw video frame to canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Draw maintaining aspect ratio
+        const videoAspectRatio = video.videoWidth / video.videoHeight;
+        const canvasAspectRatio = canvas.width / canvas.height;
+
+        let drawWidth,
+          drawHeight,
+          offsetX = 0,
+          offsetY = 0;
+
+        if (videoAspectRatio > canvasAspectRatio) {
+          // Video is wider than canvas
+          drawHeight = canvas.height;
+          drawWidth = video.videoWidth * (canvas.height / video.videoHeight);
+          offsetX = (canvas.width - drawWidth) / 2;
+        } else {
+          // Video is taller than canvas
+          drawWidth = canvas.width;
+          drawHeight = video.videoHeight * (canvas.width / video.videoWidth);
+          offsetY = (canvas.height - drawHeight) / 2;
+        }
+
+        // Clear canvas first
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw video frame to canvas with proper dimensions
+        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
         // Get image data as base64 string
         const imageDataUrl = canvas.toDataURL("image/jpeg");
@@ -357,4 +387,3 @@
     </script>
   </body>
 </html>
-
