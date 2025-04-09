@@ -1,235 +1,221 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Admin Dashboard - SmartGate</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f3f4f6;
-      padding: 1.5rem;
-      margin: 0;
-    }
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      background-color: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    h2 {
-      margin: 0;
-      color: #1f2937;
-    }
-    .button-group {
-      display: flex;
-      gap: 10px;
-    }
-    .button {
-      display: inline-block;
-      padding: 8px 16px;
-      border-radius: 8px;
-      text-decoration: none;
-      text-align: center;
-    }
-    .add-button {
-      background-color: #10b981;
-      color: white;
-    }
-    .add-button:hover {
-      background-color: #059669;
-    }
-    .logout-button {
-      background-color: #ef4444;
-      color: white;
-    }
-    .logout-button:hover {
-      background-color: #dc2626;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    th {
-      background-color: #f9fafb;
-      font-weight: 600;
-      color: #4b5563;
-    }
-    tr:hover {
-      background-color: #f3f4f6;
-    }
-    .success-message {
-      background-color: #d1fae5;
-      border-left: 4px solid #10b981;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      color: #065f46;
-      border-radius: 4px;
-    }
-    .filter-container {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      align-items: center;
-    }
-    select, input {
-      padding: 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-    }
-    .filter-button {
-      background-color: #4f46e5;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .filter-button:hover {
-      background-color: #4338ca;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .status-checkin {
-      background-color: #d1fae5;
-      color: #065f46;
-    }
-    .status-checkout {
-      background-color: #fee2e2;
-      color: #991b1b;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>Admin Dashboard</h2>
-      <div class="button-group">
-        <a href="/admin/add" class="button add-button">Add New User</a>
-        <a href="/logout" class="button logout-button">Logout</a>
+  <head>
+    <title>Admin Dashboard - SmartGate</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+        padding: 1.5rem;
+        margin: 0;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      h2 {
+        margin: 0;
+        color: #1f2937;
+      }
+      .button-group {
+        display: flex;
+        gap: 10px;
+      }
+      .button {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        text-align: center;
+      }
+      .add-button {
+        background-color: #10b981;
+        color: white;
+      }
+      .add-button:hover {
+        background-color: #059669;
+      }
+      .logout-button {
+        background-color: #ef4444;
+        color: white;
+      }
+      .logout-button:hover {
+        background-color: #dc2626;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        color: #4b5563;
+      }
+      tr:hover {
+        background-color: #f3f4f6;
+      }
+      .success-message {
+        background-color: #d1fae5;
+        border-left: 4px solid #10b981;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: #065f46;
+        border-radius: 4px;
+      }
+      .filter-container {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        align-items: center;
+      }
+      select,
+      input {
+        padding: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+      }
+      .filter-button {
+        background-color: #4f46e5;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .filter-button:hover {
+        background-color: #4338ca;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Admin Dashboard</h2>
+        <div class="button-group">
+          <a href="/admin/add" class="button add-button">Add New User</a>
+          <a href="/logout" class="button logout-button">Logout</a>
+        </div>
       </div>
-    </div>
-    
-    {% if get_flashed_messages(category_filter=["success"]) %}
+
+      {% if get_flashed_messages(category_filter=["success"]) %}
       <div class="success-message">
         {% for message in get_flashed_messages(category_filter=["success"]) %}
-          {{ message }}
-        {% endfor %}
+        {{ message }} {% endfor %}
       </div>
-    {% endif %}
-    
-    <div class="filter-container">
-      <select name="user_filter" id="user-filter">
-        <option value="">All Users</option>
-        {% for user in users %}
-          <option value="{{ user.user_id }}">{{ user.name }} ({{ user.user_id }})</option>
-        {% endfor %}
-      </select>
-      
-      <input type="date" id="date-filter" name="date_filter">
-      
-      <select name="status_filter" id="status-filter">
-        <option value="">All Status</option>
-        <option value="check-in">Check-in</option>
-        <option value="check-out">Check-out</option>
-      </select>
-      
-      <button class="filter-button" id="apply-filter">Apply Filters</button>
-      <button class="filter-button" id="reset-filter" style="background-color: #6b7280;">Reset</button>
-    </div>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>User ID</th>
-          <th>Name</th>
-          <th>Timestamp</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="attendance-table">
-        {% for record in records %}
+      {% endif %}
+
+      <div class="filter-container">
+        <select name="user_filter" id="user-filter">
+          <option value="">All Users</option>
+          {% for face in faces %}
+          <option value="{{ face._id }}">
+            {{ face.name }} ({{ face._id }})
+          </option>
+          {% endfor %}
+        </select>
+
+        <input type="date" id="date-filter" name="date_filter" />
+
+        <button class="filter-button" id="apply-filter">Apply Filters</button>
+        <button
+          class="filter-button"
+          id="reset-filter"
+          style="background-color: #6b7280"
+        >
+          Reset
+        </button>
+      </div>
+
+      <table>
+        <thead>
           <tr>
-            <td>{{ record.user_id }}</td>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="attendance-table">
+          {% for record in records %}
+          <tr>
+            <td>{{ record.face_id }}</td>
             <td>
-              {% for user in users %}
-                {% if user.user_id == record.user_id %}
-                  {{ user.name }}
-                {% endif %}
-              {% endfor %}
+              {% for face in faces %} {% if face._id == record.face %} {{
+              face.name }} {% endif %} {% endfor %}
             </td>
             <td>{{ record.timestamp }}</td>
-            <td>
-              <span class="status-badge {% if record.status == 'check-in' %}status-checkin{% else %}status-checkout{% endif %}">
-                {{ record.status }}
-              </span>
-            </td>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  
-  <script>
-    // Simple client-side filtering
-    document.getElementById('apply-filter').addEventListener('click', function() {
-      filterTable();
-    });
-    
-    document.getElementById('reset-filter').addEventListener('click', function() {
-      document.getElementById('user-filter').value = '';
-      document.getElementById('date-filter').value = '';
-      document.getElementById('status-filter').value = '';
-      filterTable();
-    });
-    
-    function filterTable() {
-      const userFilter = document.getElementById('user-filter').value;
-      const dateFilter = document.getElementById('date-filter').value;
-      const statusFilter = document.getElementById('status-filter').value;
-      
-      const rows = document.getElementById('attendance-table').getElementsByTagName('tr');
-      
-      for (let i = 0; i < rows.length; i++) {
-        const userId = rows[i].getElementsByTagName('td')[0].textContent.trim();
-        const timestamp = rows[i].getElementsByTagName('td')[2].textContent.trim();
-        const status = rows[i].getElementsByTagName('td')[3].textContent.trim();
-        
-        let showRow = true;
-        
-        if (userFilter && userId !== userFilter) {
-          showRow = false;
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // Simple client-side filtering
+      document
+        .getElementById("apply-filter")
+        .addEventListener("click", function () {
+          filterTable();
+        });
+
+      document
+        .getElementById("reset-filter")
+        .addEventListener("click", function () {
+          document.getElementById("user-filter").value = "";
+          document.getElementById("date-filter").value = "";
+          filterTable();
+        });
+
+      function filterTable() {
+        const userFilter = document.getElementById("user-filter").value;
+        const dateFilter = document.getElementById("date-filter").value;
+
+        const rows = document
+          .getElementById("attendance-table")
+          .getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+          const userId = rows[i]
+            .getElementsByTagName("td")[0]
+            .textContent.trim();
+          const timestamp = rows[i]
+            .getElementsByTagName("td")[2]
+            .textContent.trim();
+
+          let showRow = true;
+
+          if (userFilter && userId !== userFilter) {
+            showRow = false;
+          }
+
+          if (dateFilter && !timestamp.includes(dateFilter)) {
+            showRow = false;
+          }
+
+          rows[i].style.display = showRow ? "" : "none";
         }
-        
-        if (dateFilter && !timestamp.includes(dateFilter)) {
-          showRow = false;
-        }
-        
-        if (statusFilter && status !== statusFilter) {
-          showRow = false;
-        }
-        
-        rows[i].style.display = showRow ? '' : 'none';
       }
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>
+
