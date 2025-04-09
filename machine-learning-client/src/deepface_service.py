@@ -30,7 +30,7 @@ class DeepFaceService:
         self.client = MongoClient(mongo_uri)
         self.db = self.client.smart_gates
         self.faces = self.db.faces
-        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "8"))
+        self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
 
     def add_face(self, image_data, name):
         """
