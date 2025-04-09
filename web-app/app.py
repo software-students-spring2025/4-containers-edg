@@ -1,19 +1,19 @@
 """Web app for SmartGate: handles login, session, and attendance filtering."""
 
 import os
-import requests
 from datetime import datetime
-from bson.objectid import ObjectId
 
+import requests
+from bson.objectid import ObjectId
 from flask import (
     Flask,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
     session,
     url_for,
-    jsonify,
 )
 from pymongo import MongoClient
 
@@ -24,7 +24,7 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 
 client = MongoClient(MONGO_URI)
-db = client["smart_gates"]
+db = client["smart_gate"]
 
 
 @app.route("/")
@@ -88,8 +88,8 @@ def admin_add_user():
                     "success",
                 )
                 return redirect(url_for("admin_dashboard"))
-            else:
-                flash(f"Error adding face: {result.get('message')}", "error")
+
+            flash(f"Error adding face: {result.get('message')}", "error")
 
         except requests.RequestException as e:
             flash(f"Error connecting to DeepFace service: {str(e)}", "error")
@@ -143,15 +143,15 @@ def process_signin():
                         ),
                     }
                 )
-            else:
-                return jsonify({"success": False, "message": "Face not recognized"})
-        else:
-            return jsonify(
-                {
-                    "success": False,
-                    "message": f"Error communicating with DeepFace API: {response.status_code}",
-                }
-            )
+
+            return jsonify({"success": False, "message": "Face not recognized"})
+
+        return jsonify(
+            {
+                "success": False,
+                "message": f"Error communicating with DeepFace API: {response.status_code}",
+            }
+        )
 
     except requests.RequestException as e:
         return jsonify(
@@ -167,9 +167,9 @@ def signin_success(face_id, attendance_id):
     """Show success message after signin."""
     user = db.faces.find_one({"_id": ObjectId(face_id)})
 
-    attendance = db.attendance.find_one({"_id": attendance_id})
+    records = db.attendance.find_one({"_id": attendance_id})
 
-    return render_template("signin_success.html", user=user, attendance=attendance)
+    return render_template("signin_success.html", user=user, attendance=records)
 
 
 @app.route("/attendance/<user_id>")
