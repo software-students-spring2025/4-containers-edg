@@ -13,6 +13,7 @@ from flask import (
     request,
     session,
     url_for,
+    g,
 )
 from pymongo import MongoClient
 
@@ -22,8 +23,13 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:password@db:27017")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 
-client = MongoClient(MONGO_URI)
-db = client["smart_gate"]
+
+def get_db():
+    """Get MongoDB connection from flask.g cache."""
+    if "db" not in g:
+        client = MongoClient(MONGO_URI)
+        g.db = client["smartgate"]
+    return g.db
 
 
 @app.route("/")
@@ -47,8 +53,10 @@ def admin_login():
 @app.route("/admin")
 def admin_dashboard():
     """Display admin dashboard with attendance and face records."""
+    db = get_db()
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
+
     records = list(db.attendance.find().sort("timestamp", -1))
     faces = list(db.faces.find())
     return render_template("admin.html", records=records, faces=faces)
@@ -92,9 +100,14 @@ def signin():
 @app.route("/process_signin", methods=["POST"])
 def process_signin():
     """Process submitted face image for signin using DeepFace."""
+    db = get_db()
     if "image" not in request.form:
         return jsonify({"success": False, "message": "No image provided"}), 400
+
+    # Get image data
     image_data = request.form.get("image")
+
+    # Call DeepFace API to verify the face
     try:
         response = requests.post(
             f"{DEEPFACE_API_URL}/faces/verify", json={"img": image_data}, timeout=30
@@ -139,15 +152,19 @@ def process_signin():
 
 @app.route("/signin/success/<face_id>/<attendance_id>")
 def signin_success(face_id, attendance_id):
-    """Display success message after signin with matched record."""
+    """Show success message after signin."""
+    db = get_db()
     user = db.faces.find_one({"_id": ObjectId(face_id)})
-    records = db.attendance.find_one({"_id": ObjectId(attendance_id)})
+
+    records = db.attendance.find_one({"_id": attendance_id})
+
     return render_template("signin_success.html", user=user, attendance=records)
 
 
 @app.route("/attendance/<user_id>")
 def attendance(user_id):
     """Show individual user's attendance records."""
+    db = get_db()
     user = db.faces.find_one({"_id": ObjectId(user_id)})
     if not user:
         return redirect(url_for("signin"))
@@ -165,6 +182,7 @@ def logout():
 @app.route("/admin/delete", methods=["GET"])
 def admin_delete_page():
     """Display all face records in a deletable admin view."""
+    db = get_db()
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     faces = db.faces.find()
@@ -174,6 +192,7 @@ def admin_delete_page():
 @app.route("/admin/delete/<face_id>", methods=["POST"])
 def delete_face(face_id):
     """Delete a specific face record by ID."""
+    db = get_db()
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     db.faces.delete_one({"_id": ObjectId(face_id)})
