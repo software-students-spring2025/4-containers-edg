@@ -237,6 +237,7 @@ def process_signin():
 @app.route("/signin/success/<face_id>")
 def signin_success(face_id):
     """Display success message after signin with matched record."""
+    db = get_db()
     user = db.faces.find_one({"_id": ObjectId(face_id)})
 
     return render_template("signin_success.html", user=user)
