@@ -73,7 +73,9 @@ def admin_add_user():
             )
             result = response.json()
             if result.get("success"):
-                flash(f"User {name} added successfully with face recognition", "success")
+                flash(
+                    f"User {name} added successfully with face recognition", "success"
+                )
                 return redirect(url_for("admin_dashboard"))
             flash(f"Error adding face: {result.get('message')}", "error")
         except requests.RequestException as e:
@@ -102,29 +104,37 @@ def process_signin():
             if result.get("success") and result.get("verified"):
                 match = result.get("match", {})
                 face_id = match["_id"]
-                attendance_id = db.attendance.insert_one({
-                    "face_id": face_id,
-                    "name": match["name"],
-                    "timestamp": datetime.now(),
-                }).inserted_id
-                return jsonify({
-                    "success": True,
-                    "redirect": url_for(
-                        "signin_success",
-                        face_id=str(face_id),
-                        attendance_id=str(attendance_id),
-                    ),
-                })
+                attendance_id = db.attendance.insert_one(
+                    {
+                        "face_id": face_id,
+                        "name": match["name"],
+                        "timestamp": datetime.now(),
+                    }
+                ).inserted_id
+                return jsonify(
+                    {
+                        "success": True,
+                        "redirect": url_for(
+                            "signin_success",
+                            face_id=str(face_id),
+                            attendance_id=str(attendance_id),
+                        ),
+                    }
+                )
             return jsonify({"success": False, "message": "Face not recognized"})
-        return jsonify({
-            "success": False,
-            "message": f"Error communicating with DeepFace API: {response.status_code}",
-        })
+        return jsonify(
+            {
+                "success": False,
+                "message": f"Error communicating with DeepFace API: {response.status_code}",
+            }
+        )
     except requests.RequestException as e:
-        return jsonify({
-            "success": False,
-            "message": f"Error connecting to DeepFace service: {str(e)}",
-        })
+        return jsonify(
+            {
+                "success": False,
+                "message": f"Error connecting to DeepFace service: {str(e)}",
+            }
+        )
 
 
 @app.route("/signin/success/<face_id>/<attendance_id>")
