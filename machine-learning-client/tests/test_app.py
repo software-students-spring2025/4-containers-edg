@@ -177,7 +177,9 @@ def test_update_face_success(mock_df, client):
         "face_id": "123456789",
         "message": "Face updated successfully",
     }
-    mock_df.replace_face.assert_called_once_with("base64_encoded_image", "Updated Person", "123456789")
+    mock_df.replace_face.assert_called_once_with(
+        "base64_encoded_image", "Updated Person", "123456789"
+    )
 
 
 @patch("app.df")

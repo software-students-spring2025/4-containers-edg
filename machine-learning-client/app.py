@@ -1,3 +1,9 @@
+"""Flask application for face recognition operations using DeepFace.
+
+This module provides endpoints for adding, verifying, updating, and deleting faces
+using a DeepFace service implementation.
+"""
+
 from flask import Flask, jsonify, request
 from src.deepface_service import DeepFaceService
 
@@ -8,11 +14,16 @@ df = DeepFaceService()
 
 @app.route("/")
 def index():
+    """Return a welcome message for the root endpoint."""
     return "Welcome to the Machine Learning Client"
 
 
 @app.route("/faces", methods=["POST"])
 def add_face():
+    """Add a new face to the database.
+
+    Requires a JSON payload with 'img' (base64 image) and 'name' fields.
+    """
     json_data = request.get_json()
 
     if "img" not in json_data or "name" not in json_data:
@@ -32,6 +43,10 @@ def add_face():
 
 @app.route("/faces/verify", methods=["POST"])
 def verify_face():
+    """Verify a face against stored faces in the database.
+
+    Requires a JSON payload with 'img' (base64 image) field.
+    """
     json_data = request.get_json()
 
     if "img" not in json_data:
@@ -48,6 +63,11 @@ def verify_face():
 
 @app.route("/faces/<face_id>", methods=["DELETE"])
 def delete_face(face_id):
+    """Delete a face from the database by its ID.
+
+    Args:
+        face_id: The ID of the face to delete.
+    """
     res = df.delete_face(face_id)
 
     return res, 200
@@ -55,6 +75,13 @@ def delete_face(face_id):
 
 @app.route("/faces/<face_id>", methods=["PUT"])
 def update_face(face_id):
+    """Update an existing face in the database.
+
+    Args:
+        face_id: The ID of the face to update.
+
+    Requires a JSON payload with 'img' (base64 image) and 'name' fields.
+    """
     json_data = request.get_json()
 
     if "img" not in json_data or "name" not in json_data:
