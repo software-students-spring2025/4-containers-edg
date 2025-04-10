@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 """Unit tests for Flask web application routes and logic."""
 
 from unittest.mock import patch, MagicMock
@@ -43,7 +44,7 @@ def test_admin_login_success(mock_get_db, client_fixture):
 
 def test_admin_login_failure(client_fixture):
     """Test admin login with incorrect password."""
-    response = client_fixture.post("/admin/login", data={"password": "wrong"}, 
+    response = client_fixture.post("/admin/login", data={"password": "wrong"},
                                    follow_redirects=True)
     assert b"Invalid admin password" in response.data
 
