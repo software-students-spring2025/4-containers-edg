@@ -5,8 +5,8 @@ import pytest
 from app import app as flask_app
 
 
-@pytest.fixture
-def client_fixture():
+@pytest.fixture(name="client_fixture")
+def client():
     """Create and configure a new test client for the app."""
     flask_app.config["TESTING"] = True
     flask_app.secret_key = "test"
@@ -43,7 +43,8 @@ def test_admin_login_success(mock_get_db, client_fixture):
 
 def test_admin_login_failure(client_fixture):
     """Test admin login with incorrect password."""
-    response = client_fixture.post("/admin/login", data={"password": "wrong"}, follow_redirects=True)
+    response = client_fixture.post("/admin/login", data={"password": "wrong"}, 
+                                   follow_redirects=True)
     assert b"Invalid admin password" in response.data
 
 
