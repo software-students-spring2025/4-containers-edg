@@ -152,3 +152,62 @@ def test_delete_face_success(mock_df, client):
         "message": "Face deleted successfully",
     }
     mock_df.delete_face.assert_called_once_with("123456789")
+
+
+@patch("app.df")
+def test_update_face_success(mock_df, client):
+    """Test successfully replacing a face in the database."""
+    # Mock the DeepFaceService response
+    mock_df.replace_face.return_value = {
+        "success": True,
+        "face_id": "123456789",
+        "message": "Face updated successfully",
+    }
+
+    # Test data
+    test_data = {"img": "base64_encoded_image", "name": "Updated Person"}
+
+    response = client.put(
+        "/faces/123456789", data=json.dumps(test_data), content_type="application/json"
+    )
+
+    assert response.status_code == 200
+    assert json.loads(response.data) == {
+        "success": True,
+        "face_id": "123456789",
+        "message": "Face updated successfully",
+    }
+    mock_df.replace_face.assert_called_once_with(
+        "base64_encoded_image", "Updated Person", "123456789"
+    )
+
+
+@patch("app.df")
+def test_update_face_missing_fields(mock_df, client):
+    """Test updating a face with missing required fields."""
+    # Test with missing name
+    test_data = {"img": "base64_encoded_image"}
+    response = client.put(
+        "/faces/123456789", data=json.dumps(test_data), content_type="application/json"
+    )
+
+    assert response.status_code == 400
+    assert json.loads(response.data) == {
+        "success": False,
+        "message": "Missing required fields (img, name)",
+    }
+
+    # Test with missing img
+    test_data = {"name": "Updated Person"}
+    response = client.put(
+        "/faces/123456789", data=json.dumps(test_data), content_type="application/json"
+    )
+
+    assert response.status_code == 400
+    assert json.loads(response.data) == {
+        "success": False,
+        "message": "Missing required fields (img, name)",
+    }
+
+    # Verify mock was not called
+    mock_df.replace_face.assert_not_called()

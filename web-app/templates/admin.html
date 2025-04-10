@@ -160,7 +160,11 @@
           {% for record in records %}
           <tr>
             <td>{{ record.face_id }}</td>
-            <td>{{ record.name }}</td>
+            <td>
+              {% for face in faces -%} {% if face._id|string ==
+              record.face_id|string -%} {{ face.name }} {%- endif %} {%- endfor
+              %}
+            </td>
             <td>{{ record.timestamp }}</td>
           </tr>
           {% endfor %}

@@ -28,7 +28,7 @@ class DeepFaceService:
         load_dotenv()
         mongo_uri = os.getenv("MONGO_URI")
         self.client = MongoClient(mongo_uri)
-        self.db = self.client.smart_gate
+        self.db = self.client["smart_gate"]
         self.faces = self.db.faces
         self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
 
@@ -55,6 +55,45 @@ class DeepFaceService:
                 "face_id": str(face_id),
                 "message": "Face added successfully",
             }
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            return {"success": False, "message": f"Error: {str(e)}"}
+
+    def replace_face(self, image_data, name, face_id):
+        """
+        Replace the face embeddings for an existing face ID and optionally update the name
+
+        Args:
+            image_data (str): Base64 encoded image
+            face_id (str): ID of the face to replace
+            name (str, optional): New name for the face. If None, name remains unchanged
+
+        Returns:
+            dict: Operation result
+        """
+        try:
+            face = self.faces.find_one({"_id": ObjectId(face_id)})
+            if not face:
+                return {"success": False, "message": "Face not found"}
+
+            embeddings = DeepFace.represent(img_path=image_data, model_name="Facenet")[
+                0
+            ]["embedding"]
+
+            update_doc = {"img_vectors": embeddings, "name": name}
+
+            result = self.faces.update_one(
+                {"_id": ObjectId(face_id)}, {"$set": update_doc}
+            )
+
+            if result.modified_count > 0:
+                return {
+                    "success": True,
+                    "face_id": face_id,
+                    "message": "Face updated successfully",
+                }
+
+            return {"success": False, "message": "Failed to update face"}
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
@@ -123,19 +162,29 @@ class DeepFaceService:
 
     def delete_face(self, face_id):
         """
-        Delete a face from the database
+        Delete a face from the database and all related attendance records
 
         Args:
             face_id (str): ID of the face to delete
 
         Returns:
-            dict: Operation result
+            dict: Operation result with counts of deleted records
         """
         try:
-            result = self.faces.delete_one({"_id": ObjectId(face_id)})
+            # Delete the face
+            face_result = self.faces.delete_one({"_id": ObjectId(face_id)})
 
-            if result.deleted_count > 0:
-                return {"success": True, "message": "Face deleted successfully"}
+            # Delete all attendance records for this face
+            attendance_result = self.db.attendance.delete_many({"face_id": face_id})
+
+            if face_result.deleted_count > 0:
+                return {
+                    "success": True,
+                    "message": (
+                        f"Face and {attendance_result.deleted_count} "
+                        "attendance records deleted successfully"
+                    ),
+                }
 
             return {"success": False, "message": "Face not found"}
 

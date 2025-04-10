@@ -1,4 +1,9 @@
-"""Web app for SmartGate: handles login, session, and attendance filtering."""
+"""
+Flask web application for SmartGate - a facial recognition attendance system.
+
+This module provides routes for user authentication via facial recognition,
+attendance tracking, and administrative functions for managing user records.
+"""
 
 import os
 from datetime import datetime
@@ -28,7 +33,7 @@ def get_db():
     """Get MongoDB connection from flask.g cache."""
     if "db" not in g:
         client = MongoClient(MONGO_URI)
-        g.db = client["smartgate"]
+        g.db = client["smart_gate"]
     return g.db
 
 
@@ -65,29 +70,111 @@ def admin_dashboard():
 @app.route("/admin/add", methods=["GET", "POST"])
 def admin_add_user():
     """Allow admin to add new face records using DeepFace API."""
+    # Check admin authentication
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    if request.method == "POST":
-        name = request.form.get("name")
-        image_data = request.form.get("image_data")
-        if not name or not image_data:
-            flash("Name and face image are required", "error")
-            return render_template("admin_add_user.html")
-        try:
-            response = requests.post(
-                f"{DEEPFACE_API_URL}/faces",
-                json={"img": image_data, "name": name},
-                timeout=30,
-            )
-            result = response.json()
-            if result.get("success"):
-                flash(
-                    f"User {name} added successfully with face recognition", "success"
-                )
-                return redirect(url_for("admin_dashboard"))
-            flash(f"Error adding face: {result.get('message')}", "error")
-        except requests.RequestException as e:
-            flash(f"Error connecting to DeepFace service: {str(e)}", "error")
+
+    # Handle GET request
+    if request.method == "GET":
+        return render_template("admin_add_user.html")
+
+    # Process POST request
+    return _process_add_user_form(request.form)
+
+
+def _process_add_user_form(form_data):
+    """Process the form data for adding or updating a user face.
+
+    This helper function handles the complex logic of processing form submissions
+    for the admin_add_user route, reducing nesting and branching in the main route.
+    """
+    # Extract form data
+    name = form_data.get("name")
+    image_data = form_data.get("image_data")
+    action = form_data.get("action", "add")
+    existing_face_id = form_data.get("existing_face_id")
+
+    # Validate required fields
+    if not name or not image_data:
+        flash("Name and face image are required", "error")
+        return render_template("admin_add_user.html")
+
+    # Handle different actions
+    try:
+        if action == "confirm":
+            return _handle_confirm_action(name, image_data, existing_face_id)
+        if action == "add":
+            return _handle_add_action(name, image_data)
+        if action == "force_add":
+            return _add_new_face(name, image_data)
+        flash("Invalid action specified", "error")
+        return render_template("admin_add_user.html")
+    except requests.RequestException as e:
+        flash(f"Error connecting to DeepFace service: {str(e)}", "error")
+        return render_template("admin_add_user.html")
+
+
+def _handle_confirm_action(name, image_data, existing_face_id):
+    """Handle the confirmation action for updating an existing face."""
+    if not existing_face_id:
+        flash("Missing face information", "error")
+        return render_template("admin_add_user.html")
+
+    update_response = requests.put(
+        f"{DEEPFACE_API_URL}/faces/{existing_face_id}",
+        json={"img": image_data, "name": name},
+        timeout=30,
+    )
+
+    result = update_response.json()
+    if result.get("success"):
+        flash(f"User {name}'s face has been updated successfully", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    flash(f"Error updating face: {result.get('message')}", "error")
+    return render_template("admin_add_user.html")
+
+
+def _handle_add_action(name, image_data):
+    """Handle the add action for a new face, with verification first."""
+    # First verify if the face already exists
+    verify_response = requests.post(
+        f"{DEEPFACE_API_URL}/faces/verify",
+        json={"img": image_data},
+        timeout=30,
+    )
+
+    verify_result = verify_response.json()
+
+    # If face exists, show confirmation page
+    if verify_result.get("success") and verify_result.get("verified"):
+        match = verify_result.get("match", {})
+        return render_template(
+            "admin_add_user.html",
+            existing_face=True,
+            match=match,
+            name=name,
+            image_data=image_data,
+        )
+
+    # Face doesn't exist, proceed with adding new face
+    return _add_new_face(name, image_data)
+
+
+def _add_new_face(name, image_data):
+    """Add a new face to the system."""
+    add_response = requests.post(
+        f"{DEEPFACE_API_URL}/faces",
+        json={"img": image_data, "name": name},
+        timeout=30,
+    )
+
+    result = add_response.json()
+    if result.get("success"):
+        flash(f"User {name} added successfully with face recognition", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    flash(f"Error adding face: {result.get('message')}", "error")
     return render_template("admin_add_user.html")
 
 
@@ -117,10 +204,34 @@ def process_signin():
             if result.get("success") and result.get("verified"):
                 match = result.get("match", {})
                 face_id = match["_id"]
+
+                # Check if user already signed in today
+                today_start = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                existing_signin = db.attendance.find_one(
+                    {"face_id": ObjectId(face_id), "timestamp": {"$gte": today_start}}
+                )
+
+                if existing_signin:
+                    # User already signed in today
+                    return jsonify(
+                        {
+                            "success": False,
+                            "already_signed_in": True,
+                            "message": "You have already signed in today",
+                            "redirect": url_for(
+                                "signin_success",
+                                face_id=str(face_id),
+                                already_signed_in=True,
+                            ),
+                        }
+                    )
+
+                # Record new attendance
                 attendance_id = db.attendance.insert_one(
                     {
-                        "face_id": face_id,
-                        "name": match["name"],
+                        "face_id": ObjectId(face_id),
                         "timestamp": datetime.now(),
                     }
                 ).inserted_id
@@ -150,15 +261,16 @@ def process_signin():
         )
 
 
-@app.route("/signin/success/<face_id>/<attendance_id>")
-def signin_success(face_id, attendance_id):
-    """Show success message after signin."""
+@app.route("/signin/success/<face_id>")
+def signin_success(face_id):
+    """Display success message after signin with matched record."""
     db = get_db()
     user = db.faces.find_one({"_id": ObjectId(face_id)})
+    already_signed_in = request.args.get("already_signed_in", "false").lower() == "true"
 
-    records = db.attendance.find_one({"_id": attendance_id})
-
-    return render_template("signin_success.html", user=user, attendance=records)
+    return render_template(
+        "signin_success.html", user=user, already_signed_in=already_signed_in
+    )
 
 
 @app.route("/attendance/<user_id>")
@@ -168,7 +280,9 @@ def attendance(user_id):
     user = db.faces.find_one({"_id": ObjectId(user_id)})
     if not user:
         return redirect(url_for("signin"))
-    records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
+    records = list(
+        db.attendance.find({"face_id": ObjectId(user_id)}).sort("timestamp", -1)
+    )
     return render_template("attendance.html", records=records, user=user)
 
 

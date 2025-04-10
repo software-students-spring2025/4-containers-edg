@@ -42,13 +42,15 @@ from src.deepface_service import DeepFaceService
 def mock_mongo_client():
     """Create a mock MongoDB client for testing."""
     with patch("src.deepface_service.MongoClient") as mock_client:
-        # Setup mock database and collection
+        # Setup mock database and collections
         mock_db = MagicMock()
-        mock_collection = MagicMock()
+        mock_faces_collection = MagicMock()
+        mock_attendance_collection = MagicMock()
 
         # Configure client.db.collection chain
         mock_client.return_value.smart_gate = mock_db
-        mock_db.faces = mock_collection
+        mock_db.faces = mock_faces_collection
+        mock_db.attendance = mock_attendance_collection
 
         yield mock_client
 
@@ -246,19 +248,27 @@ def test_verify_face_error(mock_deepface, deepface_service):
 def test_delete_face_success(deepface_service):
     """Test successfully deleting a face from the database."""
     # Setup mock result with deleted_count
-    mock_result = MagicMock()
-    mock_result.deleted_count = 1
-    deepface_service.faces.delete_one.return_value = mock_result
+    face_result = MagicMock()
+    face_result.deleted_count = 1
+    deepface_service.faces.delete_one.return_value = face_result
+
+    # Setup mock attendance result
+    attendance_result = MagicMock()
+    attendance_result.deleted_count = 3
+    deepface_service.db.attendance.delete_many.return_value = attendance_result
 
     # Call the method
     result = deepface_service.delete_face("6239121d1d9d3d6e8bbc66c0")
 
     # Verify MongoDB was called with correct parameters
     deepface_service.faces.delete_one.assert_called_once()
+    deepface_service.db.attendance.delete_many.assert_called_once_with(
+        {"face_id": "6239121d1d9d3d6e8bbc66c0"}
+    )
 
     # Assertions on the result
     assert result["success"] is True
-    assert result["message"] == "Face deleted successfully"
+    assert result["message"] == "Face and 3 attendance records deleted successfully"
 
 
 def test_delete_face_not_found(deepface_service):
@@ -282,6 +292,116 @@ def test_delete_face_error(deepface_service):
 
     # Call the method
     result = deepface_service.delete_face("6239121d1d9d3d6e8bbc66c0")
+
+    # Assertions
+    assert result == {"success": False, "message": "Error: Test exception"}
+
+
+@patch("src.deepface_service.DeepFace")
+@patch("src.deepface_service.ObjectId", side_effect=lambda x: x)
+def test_replace_face_success(mock_objectid, mock_deepface, deepface_service):
+    """Test successfully replacing a face in the database."""
+    # Setup test data
+    face_id = "6239121d1d9d3d6e8bbc66c0"
+    image_data = "base64_image_data"
+    name = "Updated Person"
+    # Mock DeepFace.represent
+    mock_embedding = {"embedding": [0.4, 0.5, 0.6]}
+    mock_deepface.represent.return_value = [mock_embedding]
+    # Mock MongoDB find_one and update_one
+    mock_face = {
+        "_id": face_id,
+        "name": "Original Person",
+        "img_vectors": [0.1, 0.2, 0.3],
+    }
+    deepface_service.faces.find_one.return_value = mock_face
+    mock_result = MagicMock()
+    mock_result.modified_count = 1
+    deepface_service.faces.update_one.return_value = mock_result
+    # Call the method
+    result = deepface_service.replace_face(image_data, name, face_id)
+
+    # Assertions
+    mock_deepface.represent.assert_called_once_with(
+        img_path=image_data, model_name="Facenet"
+    )
+    mock_objectid.assert_called_with(face_id)
+    deepface_service.faces.find_one.assert_called_once()
+
+    assert result == {
+        "success": True,
+        "face_id": face_id,
+        "message": "Face updated successfully",
+    }
+
+
+@patch("src.deepface_service.ObjectId", side_effect=lambda x: x)
+def test_replace_face_not_found(mock_objectid, deepface_service):
+    """Test replacing a face that does not exist in the database."""
+    # Setup
+    face_id = "6239121d1d9d3d6e8bbc66c0"
+    image_data = "base64_image_data"
+    name = "Updated Person"
+
+    # Mock MongoDB find_one to return None (face not found)
+    deepface_service.faces.find_one.return_value = None
+
+    # Call the method
+    result = deepface_service.replace_face(image_data, name, face_id)
+
+    # Assertions
+    mock_objectid.assert_called_with(face_id)
+    deepface_service.faces.find_one.assert_called_once()
+    deepface_service.faces.update_one.assert_not_called()
+
+    assert result == {"success": False, "message": "Face not found"}
+
+
+def test_replace_face_update_failed(deepface_service):
+    """Test when MongoDB update fails during face replacement."""
+    # Setup
+    face_id = "6239121d1d9d3d6e8bbc66c0"
+    image_data = "base64_image_data"
+    name = "Updated Person"
+
+    # Mock DeepFace.represent
+    mock_embedding = {"embedding": [0.4, 0.5, 0.6]}
+    with patch("src.deepface_service.DeepFace") as mock_deepface:
+        mock_deepface.represent.return_value = [mock_embedding]
+
+        # Mock MongoDB find_one
+        mock_face = {
+            "_id": ObjectId(face_id),
+            "name": "Original Person",
+            "img_vectors": [0.1, 0.2, 0.3],
+        }
+        deepface_service.faces.find_one.return_value = mock_face
+
+        # Mock MongoDB update_one with no modified documents
+        mock_result = MagicMock()
+        mock_result.modified_count = 0
+        deepface_service.faces.update_one.return_value = mock_result
+
+        # Call the method
+        result = deepface_service.replace_face(image_data, name, face_id)
+
+        # Assertions
+        assert result == {"success": False, "message": "Failed to update face"}
+
+
+@patch("src.deepface_service.DeepFace")
+def test_replace_face_error(mock_deepface, deepface_service):
+    """Test handling errors when replacing a face."""
+    # Setup
+    face_id = "6239121d1d9d3d6e8bbc66c0"
+    image_data = "base64_image_data"
+    name = "Updated Person"
+
+    # Mock DeepFace.represent raising an exception
+    mock_deepface.represent.side_effect = Exception("Test exception")
+
+    # Call the method
+    result = deepface_service.replace_face(image_data, name, face_id)
 
     # Assertions
     assert result == {"success": False, "message": "Error: Test exception"}
