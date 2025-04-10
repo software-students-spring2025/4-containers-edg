@@ -1,6 +1,8 @@
-[![ML-Client-CI](https://github.com/software-students-spring2025/4-containers-okay-cool/actions/workflows/ml-client-ci.yml/badge.svg)](https://github.com/software-students-spring2025/4-containers-okay-cool/actions/workflows/ml-client-test.yml)
-[![Web-App-CI](https://github.com/software-students-spring2025/4-containers-okay-cool/actions/workflows/web-app-ci.yml/badge.svg)](https://github.com/software-students-spring2025/4-containers-okay-cool/actions/workflows/web-app-test.yml)
 ![Lint-free](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/lint.yml/badge.svg)
+![Web-App Tests](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/CI.yml/badge.svg?branch=main&job=test&matrix=subdir:web-app)
+![Web-App Build](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/CI.yml/badge.svg?branch=main&job=build&matrix=service:web-app)
+![ML-Client Tests](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/CI.yml/badge.svg?branch=main&job=test&matrix=subdir:machine-learning-client)
+![Deepface Build](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/CI.yml/badge.svg?branch=main&job=build&matrix=service:deepface)
 
 # SmartGate 🚪📷
 
