@@ -162,19 +162,29 @@ class DeepFaceService:
 
     def delete_face(self, face_id):
         """
-        Delete a face from the database
+        Delete a face from the database and all related attendance records
 
         Args:
             face_id (str): ID of the face to delete
 
         Returns:
-            dict: Operation result
+            dict: Operation result with counts of deleted records
         """
         try:
-            result = self.faces.delete_one({"_id": ObjectId(face_id)})
+            # Delete the face
+            face_result = self.faces.delete_one({"_id": ObjectId(face_id)})
 
-            if result.deleted_count > 0:
-                return {"success": True, "message": "Face deleted successfully"}
+            # Delete all attendance records for this face
+            attendance_result = self.db.attendance.delete_many({"face_id": face_id})
+
+            if face_result.deleted_count > 0:
+                return {
+                    "success": True,
+                    "message": (
+                        f"Face and {attendance_result.deleted_count} "
+                        "attendance records deleted successfully"
+                    ),
+                }
 
             return {"success": False, "message": "Face not found"}
 

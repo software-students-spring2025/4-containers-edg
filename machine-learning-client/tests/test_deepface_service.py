@@ -42,13 +42,15 @@ from src.deepface_service import DeepFaceService
 def mock_mongo_client():
     """Create a mock MongoDB client for testing."""
     with patch("src.deepface_service.MongoClient") as mock_client:
-        # Setup mock database and collection
+        # Setup mock database and collections
         mock_db = MagicMock()
-        mock_collection = MagicMock()
+        mock_faces_collection = MagicMock()
+        mock_attendance_collection = MagicMock()
 
         # Configure client.db.collection chain
         mock_client.return_value.smart_gate = mock_db
-        mock_db.faces = mock_collection
+        mock_db.faces = mock_faces_collection
+        mock_db.attendance = mock_attendance_collection
 
         yield mock_client
 
@@ -246,19 +248,27 @@ def test_verify_face_error(mock_deepface, deepface_service):
 def test_delete_face_success(deepface_service):
     """Test successfully deleting a face from the database."""
     # Setup mock result with deleted_count
-    mock_result = MagicMock()
-    mock_result.deleted_count = 1
-    deepface_service.faces.delete_one.return_value = mock_result
+    face_result = MagicMock()
+    face_result.deleted_count = 1
+    deepface_service.faces.delete_one.return_value = face_result
+
+    # Setup mock attendance result
+    attendance_result = MagicMock()
+    attendance_result.deleted_count = 3
+    deepface_service.db.attendance.delete_many.return_value = attendance_result
 
     # Call the method
     result = deepface_service.delete_face("6239121d1d9d3d6e8bbc66c0")
 
     # Verify MongoDB was called with correct parameters
     deepface_service.faces.delete_one.assert_called_once()
+    deepface_service.db.attendance.delete_many.assert_called_once_with(
+        {"face_id": "6239121d1d9d3d6e8bbc66c0"}
+    )
 
     # Assertions on the result
     assert result["success"] is True
-    assert result["message"] == "Face deleted successfully"
+    assert result["message"] == "Face and 3 attendance records deleted successfully"
 
 
 def test_delete_face_not_found(deepface_service):

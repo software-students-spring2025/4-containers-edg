@@ -71,10 +71,10 @@ def test_process_signin_success(mock_get_db, mock_post, client_fixture):
         "match": {"_id": valid_face_id, "name": "Alice"},
     }
 
-    mock_attendance_collection = MagicMock()
-    mock_attendance_collection.insert_one.return_value.inserted_id = ObjectId()
+    # Mock find_one to return None (user hasn't signed in today)
     mock_db = MagicMock()
-    mock_db.attendance = mock_attendance_collection
+    mock_db.attendance.find_one.return_value = None
+    mock_db.attendance.insert_one.return_value.inserted_id = ObjectId()
     mock_get_db.return_value = mock_db
 
     response = client_fixture.post("/process_signin", data={"image": "dummy_base64"})
@@ -95,6 +95,38 @@ def test_process_signin_failure(mock_post, client_fixture):
     response = client_fixture.post("/process_signin", data={"image": "dummy_base64"})
     assert response.status_code == 200
     assert not response.json["success"]
+
+
+@patch("app.requests.post")
+@patch("app.get_db")
+def test_process_signin_already_signed_in(mock_get_db, mock_post, client_fixture):
+    """Test sign-in when user has already signed in today."""
+    # Use a valid ObjectId string (24-char hex)
+    valid_face_id = str(ObjectId())
+
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = {
+        "success": True,
+        "verified": True,
+        "match": {"_id": valid_face_id, "name": "Alice"},
+    }
+
+    # Mock find_one to return an existing record (user already signed in today)
+    mock_db = MagicMock()
+    mock_db.attendance.find_one.return_value = {
+        "_id": ObjectId(),
+        "face_id": ObjectId(valid_face_id),
+        "timestamp": datetime.now(),
+    }
+    mock_get_db.return_value = mock_db
+
+    response = client_fixture.post("/process_signin", data={"image": "dummy_base64"})
+    assert response.status_code == 200
+    assert not response.json["success"]
+    assert response.json["already_signed_in"] is True
+    assert "already signed in today" in response.json["message"]
+    assert "/signin/success/" in response.json["redirect"]
+    assert "already_signed_in=True" in response.json["redirect"]
 
 
 def test_logout_clears_session(client_fixture):
@@ -131,8 +163,10 @@ def test_delete_face_success(mock_get_db, client_fixture):
     """Test successful deletion of a face record."""
     mock_faces = MagicMock()
     mock_faces.delete_one.return_value.deleted_count = 1
+    mock_attendance = MagicMock()
     mock_db = MagicMock()
     mock_db.faces = mock_faces
+    mock_db.attendance = mock_attendance
     mock_get_db.return_value = mock_db
 
     # Set admin session
@@ -219,6 +253,13 @@ def test_signin_success_page(mock_get_db, client_fixture):
     mock_get_db.return_value = mock_db
 
     response = client_fixture.get(f"/signin/success/{str(user_id)}")
+    assert response.status_code == 200
+    assert b"Test User" in response.data or b"success" in response.data.lower()
+
+    # Test with already_signed_in parameter
+    response = client_fixture.get(
+        f"/signin/success/{str(user_id)}?already_signed_in=true"
+    )
     assert response.status_code == 200
     assert b"Test User" in response.data or b"success" in response.data.lower()
 
