@@ -13,6 +13,7 @@ python-dotenv = "*"
 numpy = "*"
 tomli = "*"
 typing-extensions = "*"
+pytest = "*"
 
 [dev-packages]
 
