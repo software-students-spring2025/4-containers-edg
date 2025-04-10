@@ -1,5 +1,3 @@
-"""Web app for SmartGate: handles login, session, and attendance filtering."""
-
 import os
 from datetime import datetime
 
@@ -65,23 +63,65 @@ def admin_add_user():
         return redirect(url_for("admin_login"))
 
     if request.method == "POST":
-        # Process form submission
         name = request.form.get("name")
         image_data = request.form.get("image_data")
+        action = request.form.get("action", "add")
+        existing_face_id = request.form.get("existing_face_id")
 
         if not name or not image_data:
             flash("Name and face image are required", "error")
             return render_template("admin_add_user.html")
 
-        # Call the DeepFace API to add the face
         try:
-            response = requests.post(
+            if action == "confirm":
+                if not existing_face_id:
+                    flash("Missing face information", "error")
+                    return render_template("admin_add_user.html")
+
+                updateRes = requests.put(
+                    f"{DEEPFACE_API_URL}/faces/{existing_face_id}",
+                    json={"img": image_data, "name": name},
+                    timeout=30,
+                )
+
+                result = updateRes.json()
+                if result.get("success"):
+                    flash(
+                        f"User {name}'s face has been updated successfully",
+                        "success",
+                    )
+                    return redirect(url_for("admin_dashboard"))
+
+                flash(f"Error updating face: {result.get('message')}", "error")
+                return render_template("admin_add_user.html")
+
+            # For regular add action, first verify if the face already exists
+            verifyRes = requests.post(
+                f"{DEEPFACE_API_URL}/faces/verify",
+                json={"img": image_data},
+                timeout=30,
+            )
+
+            verifyJson = verifyRes.json()
+            if verifyJson.get("success") and verifyJson.get("verified"):
+                # Face already exists, show confirmation page
+                match = verifyJson.get("match", {})
+                return render_template(
+                    "admin_add_user.html",
+                    existing_face=True,
+                    match=match,
+                    name=name,
+                    image_data=image_data,
+                )
+
+            # Face doesn't exist, proceed with adding new face
+            addRes = requests.post(
                 f"{DEEPFACE_API_URL}/faces",
                 json={"img": image_data, "name": name},
                 timeout=30,
             )
 
-            result = response.json()
+            result = addRes.json()
             if result.get("success"):
                 flash(
                     f"User {name} added successfully with face recognition",
@@ -167,9 +207,11 @@ def signin_success(face_id, attendance_id):
     """Show success message after signin."""
     user = db.faces.find_one({"_id": ObjectId(face_id)})
 
-    records = db.attendance.find_one({"_id": attendance_id})
+    attendance_record = db.attendance.find_one({"_id": ObjectId(attendance_id)})
 
-    return render_template("signin_success.html", user=user, attendance=records)
+    return render_template(
+        "signin_success.html", user=user, attendance=attendance_record
+    )
 
 
 @app.route("/attendance/<user_id>")

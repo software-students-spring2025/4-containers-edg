@@ -101,10 +101,12 @@
         color: white;
       }
       #step-1-content,
-      #step-2-content {
+      #step-2-content,
+      #step-3-content {
         margin-bottom: 2rem;
       }
-      #step-2-content {
+      #step-2-content,
+      #step-3-content {
         display: none;
       }
       .camera-container {
@@ -164,6 +166,38 @@
         height: 100%;
         object-fit: cover;
       }
+      .confirmation-container {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .confirmation-message {
+        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+        color: #1f2937;
+      }
+      .confirmation-name {
+        font-weight: bold;
+        color: #4f46e5;
+      }
+      .confirmation-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+      .yes-button {
+        background-color: #10b981;
+        color: white;
+      }
+      .yes-button:hover {
+        background-color: #059669;
+      }
+      .no-button {
+        background-color: #ef4444;
+        color: white;
+      }
+      .no-button:hover {
+        background-color: #dc2626;
+      }
     </style>
   </head>
   <body>
@@ -183,8 +217,43 @@
         {% for message in get_flashed_messages(category_filter=["success"]) %}
         {{ message }} {% endfor %}
       </div>
-      {% endif %}
+      {% endif %} {% if existing_face %}
+      <!-- Face confirmation step -->
+      <div class="confirmation-container">
+        <div class="image-preview" style="display: block">
+          <img src="{{ image_data }}" alt="Captured face" />
+        </div>
+        <div class="confirmation-message">
+          This face appears to match an existing user:
+          <span class="confirmation-name">{{ match.name }}</span>
+        </div>
+        <div class="confirmation-message">Is this the same person?</div>
+        <form method="post" action="/admin/add">
+          <input type="hidden" name="name" value="{{ name }}" />
+          <input type="hidden" name="image_data" value="{{ image_data }}" />
+          <input
+            type="hidden"
+            name="existing_face_id"
+            value="{{ match._id }}"
+          />
 
+          <div class="confirmation-buttons">
+            <button
+              type="submit"
+              name="action"
+              value="confirm"
+              class="yes-button"
+            >
+              Yes, Update Face
+            </button>
+            <button type="submit" name="action" value="add" class="no-button">
+              No, Add as New User
+            </button>
+          </div>
+        </form>
+      </div>
+      {% else %}
+      <!-- Normal add user flow -->
       <div class="steps">
         <div class="step active" id="step-1">1. User Info</div>
         <div class="step" id="step-2">2. Face Recognition</div>
@@ -219,6 +288,7 @@
           </div>
 
           <input type="hidden" name="image_data" id="image-data" />
+          <input type="hidden" name="action" value="add" />
 
           <div class="button-container">
             <button type="button" id="back-button" class="secondary-button">
@@ -238,6 +308,7 @@
           </div>
         </div>
       </form>
+      {% endif %}
     </div>
 
     <script>
