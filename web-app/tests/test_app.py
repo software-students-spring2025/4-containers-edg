@@ -33,9 +33,7 @@ def test_admin_login_success(mock_get_db, client_fixture):
 
     with patch("app.ADMIN_PASSWORD", "testpass"):
         response = client_fixture.post(
-            "/admin/login",
-            data={"password": "testpass"},
-            follow_redirects=True
+            "/admin/login", data={"password": "testpass"}, follow_redirects=True
         )
 
     assert response.status_code == 200
@@ -44,8 +42,9 @@ def test_admin_login_success(mock_get_db, client_fixture):
 
 def test_admin_login_failure(client_fixture):
     """Test admin login with incorrect password."""
-    response = client_fixture.post("/admin/login", data={"password": "wrong"},
-                                   follow_redirects=True)
+    response = client_fixture.post(
+        "/admin/login", data={"password": "wrong"}, follow_redirects=True
+    )
     assert b"Invalid admin password" in response.data
 
 
@@ -64,7 +63,7 @@ def test_process_signin_success(mock_get_db, mock_post, client_fixture):
     mock_post.return_value.json.return_value = {
         "success": True,
         "verified": True,
-        "match": {"_id": "123", "name": "Alice"}
+        "match": {"_id": "123", "name": "Alice"},
     }
 
     mock_attendance_collection = MagicMock()
