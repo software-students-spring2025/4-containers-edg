@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for Flask web application routes and logic."""
-
 from unittest.mock import patch, MagicMock
+from bson import ObjectId
 import pytest
 from app import app as flask_app
 
@@ -98,3 +98,47 @@ def test_logout_clears_session(client_fixture):
         sess["admin"] = True
     response = client_fixture.get("/logout", follow_redirects=True)
     assert b"Sign in" in response.data or response.status_code == 200
+
+
+@patch("app.get_db")
+def test_admin_delete_page_loads(mock_get_db, client_fixture):
+    """Test that admin delete page loads and shows face list."""
+    mock_faces = MagicMock()
+    mock_faces.find.return_value = [
+        {"_id": ObjectId(), "name": "Alice"},
+        {"_id": ObjectId(), "name": "Bob"},
+    ]
+    mock_db = MagicMock()
+    mock_db.faces = mock_faces
+    mock_get_db.return_value = mock_db
+
+    # Set admin session
+    with client_fixture.session_transaction() as sess:
+        sess["admin"] = True
+
+    response = client_fixture.get("/admin/delete")
+    assert response.status_code == 200
+    assert b"Alice" in response.data or b"Bob" in response.data
+
+
+@patch("app.get_db")
+def test_delete_face_success(mock_get_db, client_fixture):
+    """Test successful deletion of a face record."""
+    mock_faces = MagicMock()
+    mock_faces.delete_one.return_value.deleted_count = 1
+    mock_db = MagicMock()
+    mock_db.faces = mock_faces
+    mock_get_db.return_value = mock_db
+
+    # Set admin session
+    with client_fixture.session_transaction() as sess:
+        sess["admin"] = True
+
+    fake_face_id = str(ObjectId())
+    response = client_fixture.post(
+        f"/admin/delete/{fake_face_id}", follow_redirects=True
+    )
+
+    assert response.status_code == 200
+    assert b"Delete Face Records" in response.data
+    mock_faces.delete_one.assert_called_once_with({"_id": ObjectId(fake_face_id)})

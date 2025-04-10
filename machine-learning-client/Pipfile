@@ -10,6 +10,8 @@ deepface = "*"
 pymongo = "*"
 python-dotenv = "*"
 tf-keras = "*"
+pytest = "*"
+coverage = "*"
 
 [dev-packages]
 
