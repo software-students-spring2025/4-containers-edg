@@ -246,7 +246,12 @@
             >
               Yes, Update Face
             </button>
-            <button type="submit" name="action" value="add" class="no-button">
+            <button
+              type="submit"
+              name="action"
+              value="force_add"
+              class="no-button"
+            >
               No, Add as New User
             </button>
           </div>
@@ -331,6 +336,7 @@
       const capturedImage = document.getElementById("captured-image");
 
       let stream = null;
+      let isCapturing = true;
 
       // Initialize camera
       async function initCamera() {
@@ -365,91 +371,100 @@
       }
 
       // Next step button
-      nextButton.addEventListener("click", function () {
-        if (!nameInput.value.trim()) {
-          alert("Please enter a name");
-          nameInput.focus();
-          return;
-        }
+      if (nextButton) {
+        nextButton.addEventListener("click", function () {
+          if (!nameInput.value.trim()) {
+            alert("Please enter a name");
+            nameInput.focus();
+            return;
+          }
 
-        step1.classList.remove("active");
-        step2.classList.add("active");
-        step1Content.style.display = "none";
-        step2Content.style.display = "block";
+          step1.classList.remove("active");
+          step2.classList.add("active");
+          step1Content.style.display = "none";
+          step2Content.style.display = "block";
 
-        // Initialize camera
-        initCamera();
-      });
+          // Initialize camera
+          initCamera();
+        });
+      }
 
       // Back button
-      backButton.addEventListener("click", function () {
-        step2.classList.remove("active");
-        step1.classList.add("active");
-        step2Content.style.display = "none";
-        step1Content.style.display = "block";
+      if (backButton) {
+        backButton.addEventListener("click", function () {
+          step2.classList.remove("active");
+          step1.classList.add("active");
+          step2Content.style.display = "none";
+          step1Content.style.display = "block";
 
-        // Stop camera
-        stopCamera();
-      });
+          // Stop camera
+          stopCamera();
+        });
+      }
 
       // Capture image button
-      captureButton.addEventListener("click", function () {
-        const context = canvas.getContext("2d");
+      if (captureButton) {
+        captureButton.addEventListener("click", function () {
+          if (isCapturing) {
+            // Capture mode
+            const context = canvas.getContext("2d");
 
-        // Draw maintaining aspect ratio
-        const videoAspectRatio = video.videoWidth / video.videoHeight;
-        const canvasAspectRatio = canvas.width / canvas.height;
+            // Draw maintaining aspect ratio
+            const videoAspectRatio = video.videoWidth / video.videoHeight;
+            const canvasAspectRatio = canvas.width / canvas.height;
 
-        let drawWidth,
-          drawHeight,
-          offsetX = 0,
-          offsetY = 0;
+            let drawWidth,
+              drawHeight,
+              offsetX = 0,
+              offsetY = 0;
 
-        if (videoAspectRatio > canvasAspectRatio) {
-          // Video is wider than canvas
-          drawHeight = canvas.height;
-          drawWidth = video.videoWidth * (canvas.height / video.videoHeight);
-          offsetX = (canvas.width - drawWidth) / 2;
-        } else {
-          // Video is taller than canvas
-          drawWidth = canvas.width;
-          drawHeight = video.videoHeight * (canvas.width / video.videoWidth);
-          offsetY = (canvas.height - drawHeight) / 2;
-        }
+            if (videoAspectRatio > canvasAspectRatio) {
+              // Video is wider than canvas
+              drawHeight = canvas.height;
+              drawWidth =
+                video.videoWidth * (canvas.height / video.videoHeight);
+              offsetX = (canvas.width - drawWidth) / 2;
+            } else {
+              // Video is taller than canvas
+              drawWidth = canvas.width;
+              drawHeight =
+                video.videoHeight * (canvas.width / video.videoWidth);
+              offsetY = (canvas.height - drawHeight) / 2;
+            }
 
-        // Clear canvas first
-        context.clearRect(0, 0, canvas.width, canvas.height);
+            // Clear canvas first
+            context.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw video frame to canvas with proper dimensions
-        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+            // Draw video frame to canvas with proper dimensions
+            context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
-        // Get image data as base64 string
-        const imageDataUrl = canvas.toDataURL("image/jpeg");
+            // Get image data as base64 string
+            const imageDataUrl = canvas.toDataURL("image/jpeg");
 
-        // Update hidden input with image data
-        imageData.value = imageDataUrl;
+            // Update hidden input with image data
+            imageData.value = imageDataUrl;
 
-        // Show preview
-        capturedImage.src = imageDataUrl;
-        cameraContainer.style.display = "none";
-        imagePreview.style.display = "block";
+            // Show preview
+            capturedImage.src = imageDataUrl;
+            cameraContainer.style.display = "none";
+            imagePreview.style.display = "block";
 
-        // Enable submit button
-        submitButton.disabled = false;
+            // Enable submit button
+            submitButton.disabled = false;
 
-        // Change capture button to "Retake"
-        captureButton.innerText = "Retake";
-        captureButton.addEventListener(
-          "click",
-          function () {
+            // Change capture button to "Retake"
+            captureButton.innerText = "Retake";
+            isCapturing = false;
+          } else {
+            // Retake mode
             cameraContainer.style.display = "block";
             imagePreview.style.display = "none";
             submitButton.disabled = true;
             captureButton.innerText = "Capture Image";
-          },
-          { once: true },
-        );
-      });
+            isCapturing = true;
+          }
+        });
+      }
 
       // Stop camera when leaving the page
       window.addEventListener("beforeunload", function () {

@@ -216,7 +216,7 @@
             processing.style.display = "none";
             signinButton.disabled = false;
 
-            if (result.success) {
+            if (result.success || result.already_signed_in) {
               if (result.redirect) {
                 window.location.href = result.redirect;
               }

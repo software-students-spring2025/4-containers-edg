@@ -28,7 +28,7 @@ class DeepFaceService:
         load_dotenv()
         mongo_uri = os.getenv("MONGO_URI")
         self.client = MongoClient(mongo_uri)
-        self.db = self.client.smart_gate
+        self.db = self.client["smart_gate"]
         self.faces = self.db.faces
         self.threshold = float(os.getenv("DEEPFACE_THRESHOLD", "10"))
 

@@ -33,7 +33,7 @@ def get_db():
     """Get MongoDB connection from flask.g cache."""
     if "db" not in g:
         client = MongoClient(MONGO_URI)
-        g.db = client["smartgate"]
+        g.db = client["smart_gate"]
     return g.db
 
 
@@ -105,6 +105,8 @@ def _process_add_user_form(form_data):
             return _handle_confirm_action(name, image_data, existing_face_id)
         if action == "add":
             return _handle_add_action(name, image_data)
+        if action == "force_add":
+            return _add_new_face(name, image_data)
         flash("Invalid action specified", "error")
         return render_template("admin_add_user.html")
     except requests.RequestException as e:
@@ -202,6 +204,31 @@ def process_signin():
             if result.get("success") and result.get("verified"):
                 match = result.get("match", {})
                 face_id = match["_id"]
+
+                # Check if user already signed in today
+                today_start = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                existing_signin = db.attendance.find_one(
+                    {"face_id": ObjectId(face_id), "timestamp": {"$gte": today_start}}
+                )
+
+                if existing_signin:
+                    # User already signed in today
+                    return jsonify(
+                        {
+                            "success": False,
+                            "already_signed_in": True,
+                            "message": "You have already signed in today",
+                            "redirect": url_for(
+                                "signin_success",
+                                face_id=str(face_id),
+                                already_signed_in=True,
+                            ),
+                        }
+                    )
+
+                # Record new attendance
                 attendance_id = db.attendance.insert_one(
                     {
                         "face_id": ObjectId(face_id),
@@ -239,8 +266,11 @@ def signin_success(face_id):
     """Display success message after signin with matched record."""
     db = get_db()
     user = db.faces.find_one({"_id": ObjectId(face_id)})
+    already_signed_in = request.args.get("already_signed_in", "false").lower() == "true"
 
-    return render_template("signin_success.html", user=user)
+    return render_template(
+        "signin_success.html", user=user, already_signed_in=already_signed_in
+    )
 
 
 @app.route("/attendance/<user_id>")
