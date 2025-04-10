@@ -14,6 +14,7 @@ numpy = "*"
 tomli = "*"
 typing-extensions = "*"
 pytest = "*"
+coverage = "*"
 
 [dev-packages]
 
