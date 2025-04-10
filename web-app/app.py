@@ -2,7 +2,6 @@
 
 import os
 from datetime import datetime
-
 import requests
 from bson.objectid import ObjectId
 from flask import (
@@ -26,12 +25,16 @@ DEEPFACE_API_URL = os.environ.get("DEEPFACE_API_URL", "http://localhost:5005")
 client = MongoClient(MONGO_URI)
 db = client["smart_gate"]
 
+
 @app.route("/")
 def index():
+    """Redirect to signin page."""
     return redirect(url_for("signin"))
+
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
+    """Handle admin login via password."""
     if request.method == "POST":
         password = request.form.get("password")
         if password == ADMIN_PASSWORD:
@@ -40,16 +43,20 @@ def admin_login():
         flash("Invalid admin password", "error")
     return render_template("admin_login.html")
 
+
 @app.route("/admin")
 def admin_dashboard():
+    """Display admin dashboard with attendance and face records."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     records = list(db.attendance.find().sort("timestamp", -1))
     faces = list(db.faces.find())
     return render_template("admin.html", records=records, faces=faces)
 
+
 @app.route("/admin/add", methods=["GET", "POST"])
 def admin_add_user():
+    """Allow admin to add new face records using DeepFace API."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     if request.method == "POST":
@@ -73,12 +80,16 @@ def admin_add_user():
             flash(f"Error connecting to DeepFace service: {str(e)}", "error")
     return render_template("admin_add_user.html")
 
+
 @app.route("/signin", methods=["GET"])
 def signin():
+    """Display signin page for face recognition."""
     return render_template("signin.html")
+
 
 @app.route("/process_signin", methods=["POST"])
 def process_signin():
+    """Process submitted face image for signin using DeepFace."""
     if "image" not in request.form:
         return jsonify({"success": False, "message": "No image provided"}), 400
     image_data = request.form.get("image")
@@ -115,42 +126,50 @@ def process_signin():
             "message": f"Error connecting to DeepFace service: {str(e)}",
         })
 
+
 @app.route("/signin/success/<face_id>/<attendance_id>")
 def signin_success(face_id, attendance_id):
+    """Display success message after signin with matched record."""
     user = db.faces.find_one({"_id": ObjectId(face_id)})
     records = db.attendance.find_one({"_id": ObjectId(attendance_id)})
     return render_template("signin_success.html", user=user, attendance=records)
 
+
 @app.route("/attendance/<user_id>")
 def attendance(user_id):
+    """Show individual user's attendance records."""
     user = db.faces.find_one({"_id": ObjectId(user_id)})
     if not user:
         return redirect(url_for("signin"))
     records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
     return render_template("attendance.html", records=records, user=user)
 
+
 @app.route("/logout")
 def logout():
+    """Clear session and logout user/admin."""
     session.clear()
     return redirect(url_for("index"))
 
-# ✅ ✅ ✅ ADDING NEW ROUTES BELOW ✅ ✅ ✅
 
 @app.route("/admin/delete", methods=["GET"])
 def admin_delete_page():
+    """Display all face records in a deletable admin view."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     faces = db.faces.find()
     return render_template("admin_delete.html", faces=faces)
 
+
 @app.route("/admin/delete/<face_id>", methods=["POST"])
 def delete_face(face_id):
+    """Delete a specific face record by ID."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     db.faces.delete_one({"_id": ObjectId(face_id)})
     flash("Face record deleted successfully.", "success")
     return redirect(url_for("admin_delete_page"))
 
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
-    
