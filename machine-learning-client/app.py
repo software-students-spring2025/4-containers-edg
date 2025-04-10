@@ -53,5 +53,25 @@ def delete_face(face_id):
     return res, 200
 
 
+@app.route("/faces/<face_id>", methods=["PUT"])
+def update_face(face_id):
+    json_data = request.get_json()
+
+    if "img" not in json_data or "name" not in json_data:
+        return (
+            jsonify(
+                {"success": False, "message": "Missing required fields (img, name)"}
+            ),
+            400,
+        )
+
+    img = json_data["img"]
+    name = json_data["name"]
+
+    res = df.replace_face(img, name, face_id)
+
+    return res, 200
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5005)

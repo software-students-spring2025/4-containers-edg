@@ -59,6 +59,45 @@ class DeepFaceService:
         except Exception as e:  # pylint: disable=broad-exception-caught
             return {"success": False, "message": f"Error: {str(e)}"}
 
+    def replace_face(self, image_data, name, face_id):
+        """
+        Replace the face embeddings for an existing face ID and optionally update the name
+
+        Args:
+            image_data (str): Base64 encoded image
+            face_id (str): ID of the face to replace
+            name (str, optional): New name for the face. If None, name remains unchanged
+
+        Returns:
+            dict: Operation result
+        """
+        try:
+            face = self.faces.find_one({"_id": ObjectId(face_id)})
+            if not face:
+                return {"success": False, "message": "Face not found"}
+
+            embeddings = DeepFace.represent(img_path=image_data, model_name="Facenet")[
+                0
+            ]["embedding"]
+
+            update_doc = {"img_vectors": embeddings, "name": name}
+
+            result = self.faces.update_one(
+                {"_id": ObjectId(face_id)}, {"$set": update_doc}
+            )
+
+            if result.modified_count > 0:
+                return {
+                    "success": True,
+                    "face_id": face_id,
+                    "message": "Face updated successfully",
+                }
+
+            return {"success": False, "message": "Failed to update face"}
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            return {"success": False, "message": f"Error: {str(e)}"}
+
     def verify_face(self, image_data):
         """
         Verify a face against stored faces
