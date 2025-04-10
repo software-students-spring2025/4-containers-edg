@@ -167,8 +167,7 @@ def process_signin():
 
                 attendance_id = db.attendance.insert_one(
                     {
-                        "face_id": face_id,
-                        "name": match["name"],
+                        "face_id": ObjectId(face_id),
                         "timestamp": datetime.now(),
                     }
                 ).inserted_id
