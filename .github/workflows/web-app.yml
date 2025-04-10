@@ -1,0 +1,25 @@
+name: Web App CI
+
+on:
+  push:
+    paths:
+      - 'web-app/**'
+  pull_request:
+    paths:
+      - 'web-app/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build Docker image
+      run: |
+          docker build -t ml-client-test ./web-app
+
+    - name: Run web-app tests
+      working-directory: web-app
+      run: pytest tests/
