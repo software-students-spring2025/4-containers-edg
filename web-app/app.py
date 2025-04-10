@@ -2,7 +2,6 @@
 
 import os
 from datetime import datetime
-
 import requests
 from bson.objectid import ObjectId
 from flask import (
@@ -29,13 +28,13 @@ db = client["smart_gate"]
 
 @app.route("/")
 def index():
-    """Home page - redirect to login if not logged in, otherwise show attendance."""
+    """Redirect to signin page."""
     return redirect(url_for("signin"))
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
-    """Handles admin login with password verification."""
+    """Handle admin login via password."""
     if request.method == "POST":
         password = request.form.get("password")
         if password == ADMIN_PASSWORD:
@@ -47,84 +46,64 @@ def admin_login():
 
 @app.route("/admin")
 def admin_dashboard():
-    """Admin dashboard showing all attendance records."""
+    """Display admin dashboard with attendance and face records."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-
     records = list(db.attendance.find().sort("timestamp", -1))
-
     faces = list(db.faces.find())
-
     return render_template("admin.html", records=records, faces=faces)
 
 
 @app.route("/admin/add", methods=["GET", "POST"])
 def admin_add_user():
-    """Admin page to add new users with facial recognition."""
+    """Allow admin to add new face records using DeepFace API."""
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-
     if request.method == "POST":
-        # Process form submission
         name = request.form.get("name")
         image_data = request.form.get("image_data")
-
         if not name or not image_data:
             flash("Name and face image are required", "error")
             return render_template("admin_add_user.html")
-
-        # Call the DeepFace API to add the face
         try:
             response = requests.post(
                 f"{DEEPFACE_API_URL}/faces",
                 json={"img": image_data, "name": name},
                 timeout=30,
             )
-
             result = response.json()
             if result.get("success"):
                 flash(
-                    f"User {name} added successfully with face recognition",
-                    "success",
+                    f"User {name} added successfully with face recognition", "success"
                 )
                 return redirect(url_for("admin_dashboard"))
-
             flash(f"Error adding face: {result.get('message')}", "error")
-
         except requests.RequestException as e:
             flash(f"Error connecting to DeepFace service: {str(e)}", "error")
-
     return render_template("admin_add_user.html")
 
 
 @app.route("/signin", methods=["GET"])
 def signin():
-    """Facial recognition signin page."""
+    """Display signin page for face recognition."""
     return render_template("signin.html")
 
 
 @app.route("/process_signin", methods=["POST"])
 def process_signin():
-    """Process facial recognition for signin."""
+    """Process submitted face image for signin using DeepFace."""
     if "image" not in request.form:
         return jsonify({"success": False, "message": "No image provided"}), 400
-
-    # Get image data
     image_data = request.form.get("image")
-
-    # Call DeepFace API to verify the face
     try:
         response = requests.post(
             f"{DEEPFACE_API_URL}/faces/verify", json={"img": image_data}, timeout=30
         )
-
         if response.status_code == 200:
             result = response.json()
-
             if result.get("success") and result.get("verified"):
                 match = result.get("match", {})
                 face_id = match["_id"]
-
                 attendance_id = db.attendance.insert_one(
                     {
                         "face_id": face_id,
@@ -132,7 +111,6 @@ def process_signin():
                         "timestamp": datetime.now(),
                     }
                 ).inserted_id
-
                 return jsonify(
                     {
                         "success": True,
@@ -143,16 +121,13 @@ def process_signin():
                         ),
                     }
                 )
-
             return jsonify({"success": False, "message": "Face not recognized"})
-
         return jsonify(
             {
                 "success": False,
                 "message": f"Error communicating with DeepFace API: {response.status_code}",
             }
         )
-
     except requests.RequestException as e:
         return jsonify(
             {
@@ -164,32 +139,46 @@ def process_signin():
 
 @app.route("/signin/success/<face_id>/<attendance_id>")
 def signin_success(face_id, attendance_id):
-    """Show success message after signin."""
+    """Display success message after signin with matched record."""
     user = db.faces.find_one({"_id": ObjectId(face_id)})
-
-    records = db.attendance.find_one({"_id": attendance_id})
-
+    records = db.attendance.find_one({"_id": ObjectId(attendance_id)})
     return render_template("signin_success.html", user=user, attendance=records)
 
 
 @app.route("/attendance/<user_id>")
 def attendance(user_id):
-    """Show attendance records for a specific user."""
+    """Show individual user's attendance records."""
     user = db.faces.find_one({"_id": ObjectId(user_id)})
-
     if not user:
         return redirect(url_for("signin"))
-
     records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
-
     return render_template("attendance.html", records=records, user=user)
 
 
 @app.route("/logout")
 def logout():
-    """Logs out the current user or admin and clears session."""
+    """Clear session and logout user/admin."""
     session.clear()
     return redirect(url_for("index"))
+
+
+@app.route("/admin/delete", methods=["GET"])
+def admin_delete_page():
+    """Display all face records in a deletable admin view."""
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    faces = db.faces.find()
+    return render_template("admin_delete.html", faces=faces)
+
+
+@app.route("/admin/delete/<face_id>", methods=["POST"])
+def delete_face(face_id):
+    """Delete a specific face record by ID."""
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    db.faces.delete_one({"_id": ObjectId(face_id)})
+    flash("Face record deleted successfully.", "success")
+    return redirect(url_for("admin_delete_page"))
 
 
 if __name__ == "__main__":
