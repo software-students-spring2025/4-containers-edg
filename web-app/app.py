@@ -195,7 +195,9 @@ def attendance(user_id):
     user = db.faces.find_one({"_id": ObjectId(user_id)})
     if not user:
         return redirect(url_for("signin"))
-    records = list(db.attendance.find({"face_id": user_id}).sort("timestamp", -1))
+    records = list(
+        db.attendance.find({"face_id": ObjectId(user_id)}).sort("timestamp", -1)
+    )
     return render_template("attendance.html", records=records, user=user)
 
 
