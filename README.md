@@ -1,5 +1,7 @@
-![Lint-free](https://github.com/software-students-spring2025/4-containers-edg/actions/workflows/lint.yml/badge.svg)
-![CI](https://github.com/software-students-spring2025/4-containers-edg/actions/workflows/CI.yml/badge.svg)
+![Lint-free](https://github.com/nyu-software-engineering/4-containers-edg/actions/workflows/lint.yml/badge.svg)
+![ML Client - CI](https://github.com/software-students-spring2025/4-containers-edg/actions/workflows/ml-client.yml/badge.svg)
+![Web App - CI](https://github.com/software-students-spring2025/4-containers-edg/actions/workflows/web-app.yml/badge.svg)
+
 
 # SmartGate 🚪📷
 
